@@ -111,6 +111,8 @@ public:
             if(m_turnProcess && m_busy && now-m_lastOutput>300000) { fail("O Claude parou de responder. Tente novamente."); killTurn(); }
         });
         m_watch.start();
+        m_usageTimer.setInterval(60000);
+        connect(&m_usageTimer,&QTimer::timeout,this,&ClaudeClient::requestUsage);
         connect(&m_historyWatcher,&QFutureWatcher<HistoryPage>::finished,this,[this] {
             const auto page=m_historyWatcher.result();
             if(m_historyAppend) m_history.append(page.rows); else m_history=page.rows;
@@ -120,6 +122,7 @@ public:
     }
     ~ClaudeClient() override {
         stopProbe(); killTurn();
+        if(m_usageProbe) { m_usageProbe->disconnect(this); m_usageProbe->kill(); m_usageProbe->waitForFinished(500); }
         if(m_historyWatcher.isRunning()) m_historyWatcher.waitForFinished();
     }
     QVariantList attachments() const { return m_attachments; }
@@ -312,8 +315,8 @@ public:
         stopProbe(); m_initialized=false; m_authenticated=false; m_models.clear();
         start();
     }
-    // Os limites chegam junto com cada resposta; aqui só republicamos o último valor conhecido.
-    Q_INVOKABLE void refresh() { expireQuota(); emit changed(); }
+    // Consulta o uso real da conta (get_usage), sem enviar mensagem nem gastar cota.
+    Q_INVOKABLE void refresh() { expireQuota(); requestUsage(); emit changed(); }
     Q_INVOKABLE bool send(const QString &text) {
         if(!ready() || m_busy || m_conversationLoading || (text.trimmed().isEmpty() && m_attachments.isEmpty())) return false;
         if(m_attachments.isEmpty() && text.trimmed().startsWith("/")) {
@@ -397,7 +400,8 @@ private:
     QByteArray m_probeBuffer, m_turnBuffer, m_turnErrors;
     qint64 m_probeStarted=0, m_lastOutput=0;
     Messages m_messages;
-    QTimer m_watch;
+    QTimer m_watch, m_usageTimer;
+    QProcess *m_usageProbe=nullptr;
     bool m_initialized=false,m_authenticated=false,m_busy=false,m_cancelRequested=false,m_turnFinished=false;
     bool m_historyBusy=false,m_historyAppend=false,m_conversationLoading=false;
     QString m_executable,m_thread,m_model,m_effort;
@@ -489,6 +493,58 @@ private:
         if(!m_authenticated) m_error="Faça login no terminal com claude (comando /login) e use Reconectar.";
         else if(m_models.isEmpty()) m_error="O Claude Code não informou modelos disponíveis.";
         updateStatus(); refreshHistory();
+        if(m_authenticated) { requestUsage(); m_usageTimer.start(); }
+    }
+    void requestUsage() {
+        if(m_usageProbe || !m_authenticated) return;
+        const QString binary=claudeBinary();
+        if(binary.isEmpty()) return;
+        QProcess *process=newProcess(binary);
+        m_usageProbe=process;
+        auto buffer=std::make_shared<QByteArray>();
+        connect(process,&QProcess::started,this,[this,process] {
+            writeLine(process,{{"type","control_request"},{"request_id","pragus-usage"},{"request",QJsonObject{{"subtype","get_usage"}}}});
+        });
+        connect(process,&QProcess::readyReadStandardOutput,this,[this,process,buffer] {
+            *buffer+=process->readAllStandardOutput();
+            int n;
+            while((n=buffer->indexOf('\n'))>=0) {
+                const auto o=QJsonDocument::fromJson(buffer->left(n)).object(); buffer->remove(0,n+1);
+                const auto response=o["response"].toObject();
+                if(o["type"]!="control_response" || response["request_id"]!="pragus-usage") continue;
+                if(response["subtype"]=="success") applyUsage(response["response"].toObject());
+                process->closeWriteChannel();
+            }
+        });
+        connect(process,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),this,[this,process] {
+            if(m_usageProbe==process) m_usageProbe=nullptr;
+            process->deleteLater();
+        });
+        connect(process,&QProcess::errorOccurred,this,[this,process](QProcess::ProcessError e) {
+            if(e!=QProcess::FailedToStart) return;
+            if(m_usageProbe==process) m_usageProbe=nullptr;
+            process->deleteLater();
+        });
+        QTimer::singleShot(20000,process,[process] { if(process->state()!=QProcess::NotRunning) process->kill(); });
+        process->setArguments(baseArguments() << "--tools" << "" << "--no-session-persistence");
+        process->start();
+    }
+    // Resposta do get_usage: utilização em porcentagem (0–100) e renovação em ISO 8601.
+    void applyUsage(const QJsonObject &usage) {
+        if(!usage["rate_limits_available"].toBool(true)) { m_quotaError="Cota indisponível para esta conta."; emit changed(); return; }
+        const auto limits=usage["rate_limits"].toObject();
+        auto apply=[](const QJsonObject &w,double &used,qint64 &reset) {
+            if(!w["utilization"].isDouble()) return false;
+            used=qBound(0.0,w["utilization"].toDouble(),100.0);
+            const auto when=QDateTime::fromString(w["resets_at"].toString(),Qt::ISODateWithMs);
+            reset=when.isValid() ? when.toSecsSinceEpoch() : 0;
+            return true;
+        };
+        bool any=apply(limits["five_hour"].toObject(),m_fiveUsed,m_fiveReset);
+        any=apply(limits["seven_day"].toObject(),m_weekUsed,m_weekReset) || any;
+        if(!any) return;
+        m_quotaUpdated=QDateTime::currentSecsSinceEpoch(); m_quotaError.clear();
+        saveChatState(); emit changed();
     }
     QString defaultEffort() const {
         for(const auto &v:m_models) { auto o=v.toMap(); if(o["id"].toString()==m_model) return o["defaultEffort"].toString(); }
@@ -634,7 +690,7 @@ private:
             QTimer::singleShot(10000,process,[process] { if(process->state()!=QProcess::NotRunning) process->kill(); });
         }
         const bool cancelled=m_cancelRequested; m_cancelRequested=false;
-        refreshHistory();
+        refreshHistory(); requestUsage();
         if(!m_busy) return;
         m_busy=false;
         const bool ok=r["subtype"]=="success" && !r["is_error"].toBool();

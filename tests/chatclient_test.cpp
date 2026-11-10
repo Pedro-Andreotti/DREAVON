@@ -141,6 +141,16 @@ private slots:
         QVERIFY(probe.contains("--no-session-persistence"));
         QCOMPARE(argAfter(probe, "--setting-sources"), QString(""));
     }
+    void quotaIsReadWithoutSendingMessages() {
+        // A cota vem do get_usage logo ao conectar, sem nenhuma pergunta.
+        QTRY_COMPARE_WITH_TIMEOUT(m_client->property("fiveHourUsed").toDouble(), 25.0, 10000);
+        QCOMPARE(m_client->property("weeklyUsed").toDouble(), 50.0);
+        QCOMPARE(m_client->property("fiveHourReset").toLongLong(), 4102444800LL);
+        QCOMPARE(turnArgs().size(), 0);
+        bool asked = false;
+        for (const auto &row : entries("stdin")) if (row["stdin"].toObject()["request"].toObject()["subtype"] == "get_usage") asked = true;
+        QVERIFY(asked);
+    }
     void loggedOutAccountAsksForLogin() {
         cleanup();
         qputenv("PRAGUS_FAKE_LOGGED_OUT", "1");

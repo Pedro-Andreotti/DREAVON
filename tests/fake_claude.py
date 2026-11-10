@@ -100,6 +100,11 @@ def main():
         log({"stdin": message})
         if message.get("type") == "control_request" and message["request"].get("subtype") == "initialize":
             initialize(message["request_id"])
+        elif message.get("type") == "control_request" and message["request"].get("subtype") == "get_usage":
+            emit({"type": "control_response", "response": {"subtype": "success", "request_id": message["request_id"], "response": {
+                "rate_limits_available": True, "rate_limits": {
+                    "five_hour": {"utilization": 25, "resets_at": "2100-01-01T00:00:00.000000+00:00"},
+                    "seven_day": {"utilization": 50, "resets_at": "2100-01-01T00:00:00.000000+00:00"}}}}})
         elif message.get("type") == "user":
             emit({"type": "system", "subtype": "init", "session_id": session, "cwd": os.getcwd()})
             answer(session, message["message"]["content"], lines)
