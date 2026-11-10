@@ -78,8 +78,8 @@ PlasmoidItem {
         onSaveReminders: json => root.cfg.reminders = json
         Layout.minimumWidth: 340
         Layout.minimumHeight: 480
-        Layout.preferredWidth: 1120
-        Layout.preferredHeight: 700
+        Layout.preferredWidth: 1280
+        Layout.preferredHeight: 800
         Connections {
             target: root
             function onExpandedChanged() { if (root.expanded) shell.focusChat() }

@@ -20,6 +20,12 @@ class DashboardClient : public QObject {
     Q_PROPERTY(QString weatherTemperature READ weatherTemperature NOTIFY weatherChanged)
     Q_PROPERTY(QStringList usbDevices READ usbDevices NOTIFY changed)
     Q_PROPERTY(QVariantList forecast READ forecast NOTIFY weatherChanged)
+    // Detalhes do tempo agora: feelsLike, humidity, wind, windDirection, rainChance, uv, sunrise, sunset, isDay, code, high, low.
+    Q_PROPERTY(QVariantMap weatherDetails MEMBER m_weatherDetails NOTIFY weatherChanged)
+    // Próximas 12 horas: [{hour, temp, code, rain}].
+    Q_PROPERTY(QVariantList hourly MEMBER m_hourly NOTIFY weatherChanged)
+    // cpuModel, cores, cpuTemp, diskTemp, uptime, load, processes, swapUsedGiB, swapTotalGiB, distro, kernel, batteryState, batteryTime.
+    Q_PROPERTY(QVariantMap systemDetails MEMBER m_systemDetails NOTIFY changed)
     Q_PROPERTY(QVariantList news READ news NOTIFY newsChanged)
     Q_PROPERTY(bool newsBusy MEMBER m_newsBusy NOTIFY newsChanged)
     Q_PROPERTY(QString newsStatus READ newsStatus NOTIFY newsChanged)
@@ -79,6 +85,8 @@ private:
     void requestBatteries();
     void updateClock();
     void updateMetrics();
+    void updateSystemDetails();
+    void requestBatteryDetails();
     void requestWeather();
     void requestLocation();
     void requestLocationProvider(int provider);
@@ -116,6 +124,8 @@ private:
     QString m_weatherSummary;
     QString m_weatherTemperature;
     QVariantList m_forecast;
+    QVariantMap m_weatherDetails, m_systemDetails;
+    QVariantList m_hourly;
     QVariantList m_news;
     bool m_newsBusy = false;
     QString m_newsStatus = QStringLiteral("Carregando notícias reais");

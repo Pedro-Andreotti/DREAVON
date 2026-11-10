@@ -11,6 +11,8 @@ Rectangle {
     property alias actions: actionRow.data
     default property alias content: body.data
     property int padding: t.pad
+    // true: o conteúdo ocupa a altura toda (listas, gráficos). false: fica no topo.
+    property bool stretch: false
 
     radius: t.radius
     color: t.card
@@ -22,7 +24,7 @@ Rectangle {
         id: column
         anchors.fill: parent
         anchors.margins: card.padding
-        spacing: 10
+        spacing: 8
         RowLayout {
             visible: card.title !== ""
             Layout.fillWidth: true
@@ -31,6 +33,7 @@ Rectangle {
             Text { text: card.title; color: card.t.muted; font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: 0.8; font.capitalization: Font.AllUppercase; Layout.fillWidth: true; elide: Text.ElideRight }
             Row { id: actionRow; spacing: 2 }
         }
-        ColumnLayout { id: body; Layout.fillWidth: true; Layout.fillHeight: true; spacing: 8 }
+        ColumnLayout { id: body; Layout.fillWidth: true; Layout.fillHeight: card.stretch; spacing: 8 }
+        Item { visible: !card.stretch; Layout.fillHeight: true }
     }
 }

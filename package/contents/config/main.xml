@@ -19,6 +19,7 @@
     <entry name="showConnections" type="Bool"><default>true</default></entry>
     <entry name="showMedia" type="Bool"><default>true</default></entry>
     <entry name="showNetwork" type="Bool"><default>true</default></entry>
+    <entry name="showCalendar" type="Bool"><default>true</default></entry>
     <entry name="showReminders" type="Bool"><default>true</default></entry>
     <entry name="showNews" type="Bool"><default>true</default></entry>
   </group>

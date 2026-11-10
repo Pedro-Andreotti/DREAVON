@@ -6,6 +6,7 @@ Card {
     id: card
     required property var net
     title: "Rede"
+    stretch: true
     icon: "network-wireless-symbolic"
     readonly property string signalIcon: {
         const s = net.signalStrength
@@ -33,7 +34,7 @@ Card {
         }
     }
     Sparkline {
-        Layout.fillWidth: true; Layout.preferredHeight: 42
+        Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 42; Layout.preferredHeight: 42
         values: card.net.downloadHistory; secondary: card.net.uploadHistory
         color: card.t.accent; secondaryColor: card.t.good
     }

@@ -2,7 +2,10 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as B
 
-// Layout principal. Largo: 3 colunas. Médio: barra lateral + chat. Estreito: abas.
+// Layout principal, com o painel geral (horário, cidade, clima) como base.
+//  largo  (≥ 1100): painel geral em cima; embaixo sistema | chat | 2 colunas de cartões
+//  médio  (≥ 720):  painel + cartões roláveis à esquerda, chat à direita
+//  estreito:        abas Painel / Chat
 Item {
     id: shell
     required property var t
@@ -13,30 +16,22 @@ Item {
     required property var cfg
     signal saveReminders(string json)
 
-    readonly property string mode: width >= 1000 ? "wide" : width >= 700 ? "medium" : "narrow"
-    readonly property bool hasRight: cfg.showMedia || cfg.showNetwork || cfg.showReminders || cfg.showNews
-    property int tab: 0
-    function focusChat() { tab = 0; chat.focusInput() }
+    readonly property string mode: width >= 1100 ? "wide" : width >= 720 ? "medium" : "narrow"
+    property int tab: 0   // estreito: 0 = Painel, 1 = Chat
+    function focusChat() { if (mode === "narrow") tab = 1; Qt.callLater(() => { if (loader.item && loader.item.chat) loader.item.chat.focusInput() }) }
 
-    Rectangle {
-        anchors.fill: parent
-        radius: 18
-        color: shell.t.background
-        border.color: shell.t.border
-    }
+    Rectangle { anchors.fill: parent; radius: 20; color: shell.t.background; border.color: shell.t.border }
 
-    // Abas (modo estreito)
     Row {
-        id: tabs
         visible: shell.mode === "narrow"
         anchors.top: parent.top; anchors.topMargin: 12; anchors.horizontalCenter: parent.horizontalCenter
-        spacing: 4
+        spacing: 4; z: 2
         Repeater {
-            model: ["Chat", "Painel"]
+            model: ["Painel", "Chat"]
             delegate: Rectangle {
                 required property string modelData
                 required property int index
-                width: 96; height: 28; radius: 14
+                width: 104; height: 28; radius: 14
                 color: shell.tab === index ? shell.t.accentSoft : "transparent"
                 border.color: shell.tab === index ? shell.t.accentLine : shell.t.border
                 Text { anchors.centerIn: parent; text: modelData; color: shell.tab === index ? shell.t.accent : shell.t.muted; font.pixelSize: 12; font.weight: Font.DemiBold }
@@ -46,65 +41,131 @@ Item {
         }
     }
 
-    Item {
-        id: body
+    Loader {
+        id: loader
         anchors.fill: parent
         anchors.margins: 12
         anchors.topMargin: shell.mode === "narrow" ? 50 : 12
+        sourceComponent: shell.mode === "wide" ? wideLayout : shell.mode === "medium" ? mediumLayout : narrowLayout
+    }
 
-        Flickable {
-            id: side
-            visible: shell.mode !== "narrow" || shell.tab === 1
-            width: shell.mode === "narrow" ? body.width : 284
-            height: body.height
-            contentHeight: sideColumn.height
-            clip: true; boundsBehavior: Flickable.StopAtBounds
-            B.ScrollBar.vertical: B.ScrollBar { policy: B.ScrollBar.AsNeeded; width: 6 }
-            Column {
-                id: sideColumn
-                width: side.width - (side.contentHeight > side.height ? 8 : 0)
-                spacing: shell.t.gap
-                ColumnLayout {
-                    width: parent.width; spacing: shell.t.gap
-                    ClockHeader { t: shell.t; dash: shell.dash; userName: shell.cfg.userName || ""; Layout.leftMargin: 6; Layout.bottomMargin: 4 }
-                    WeatherCard { t: shell.t; dash: shell.dash; visible: shell.cfg.showWeather }
-                    SystemCard { t: shell.t; dash: shell.dash; visible: shell.cfg.showSystem }
-                    ConnectionsCard { t: shell.t; dash: shell.dash; visible: shell.cfg.showConnections }
-                }
-                Item { id: sideRightHost; width: parent.width; height: childrenRect.height }
+    // Cartões reutilizados nos layouts empilhados (médio e estreito).
+    component CardStack: ColumnLayout {
+        spacing: shell.t.gap
+        SystemCard { t: shell.t; dash: shell.dash; visible: shell.cfg.showSystem }
+        ConnectionsCard { t: shell.t; dash: shell.dash; visible: shell.cfg.showConnections }
+        MediaCard { t: shell.t; media: shell.media; visible: shell.cfg.showMedia }
+        NetworkCard { t: shell.t; net: shell.net; visible: shell.cfg.showNetwork }
+        CalendarCard { t: shell.t; visible: shell.cfg.showCalendar !== false }
+        RemindersCard { t: shell.t; stored: shell.cfg.reminders || "[]"; visible: shell.cfg.showReminders; onSave: json => shell.saveReminders(json) }
+        NewsCard { t: shell.t; dash: shell.dash; visible: shell.cfg.showNews; listHeight: 300 }
+    }
+
+    component Scroller: Flickable {
+        clip: true; boundsBehavior: Flickable.StopAtBounds
+        B.ScrollBar.vertical: B.ScrollBar { policy: B.ScrollBar.AsNeeded; width: 6 }
+    }
+
+    Component {
+        id: wideLayout
+        Item {
+            property alias chat: chatView
+            HeroPanel {
+                id: hero
+                width: parent.width
+                t: shell.t; dash: shell.dash; userName: shell.cfg.userName || ""; mode: "full"
             }
-        }
+            Item {
+                id: lower
+                y: hero.height + shell.t.gap
+                width: parent.width; height: parent.height - y
+                readonly property bool hasLeft: shell.cfg.showSystem || shell.cfg.showConnections || shell.cfg.showNetwork
+                readonly property int leftWidth: hasLeft ? 286 : 0
+                readonly property int chatWidth: Math.round(Math.max(340, Math.min(440, width * 0.32)))
 
-        ChatView {
-            id: chat
-            t: shell.t; client: shell.client
-            visible: shell.mode !== "narrow" || shell.tab === 0
-            x: shell.mode === "narrow" ? 0 : side.width + shell.t.gap
-            width: shell.mode === "narrow" ? body.width
-                 : body.width - side.width - shell.t.gap - (right.visible ? right.width + shell.t.gap : 0)
-            height: body.height
-        }
+                ColumnLayout {
+                    visible: lower.hasLeft
+                    width: lower.leftWidth; height: lower.height
+                    spacing: shell.t.gap
+                    SystemCard { id: system; t: shell.t; dash: shell.dash; visible: shell.cfg.showSystem; Layout.fillHeight: !devices.visible && !network.visible }
+                    ConnectionsCard { id: devices; t: shell.t; dash: shell.dash; visible: shell.cfg.showConnections; Layout.fillHeight: !network.visible }
+                    NetworkCard { id: network; t: shell.t; net: shell.net; visible: shell.cfg.showNetwork; Layout.fillHeight: true; Layout.minimumHeight: implicitHeight }
+                }
 
-        Flickable {
-            id: right
-            visible: shell.mode === "wide" && shell.hasRight
-            width: 296; height: body.height
-            x: body.width - width
-            contentHeight: rightHost.height
-            clip: true; boundsBehavior: Flickable.StopAtBounds
-            B.ScrollBar.vertical: B.ScrollBar { policy: B.ScrollBar.AsNeeded; width: 6 }
-            Item { id: rightHost; width: right.width - (right.contentHeight > right.height ? 8 : 0); height: childrenRect.height }
+                ChatView {
+                    id: chatView
+                    t: shell.t; client: shell.client
+                    x: lower.hasLeft ? lower.leftWidth + shell.t.gap : 0
+                    width: lower.chatWidth; height: lower.height
+                }
+
+                // Duas colunas; o último cartão de cada uma ocupa o espaço que sobra.
+                RowLayout {
+                    x: chatView.x + chatView.width + shell.t.gap
+                    width: lower.width - x; height: lower.height
+                    spacing: shell.t.gap
+                    ColumnLayout {
+                        Layout.fillWidth: true; Layout.fillHeight: true; Layout.preferredWidth: 1
+                        spacing: shell.t.gap
+                        visible: music.visible || calendar.visible
+                        MediaCard { id: music; t: shell.t; media: shell.media; visible: shell.cfg.showMedia; Layout.fillHeight: !calendar.visible }
+                        CalendarCard { id: calendar; t: shell.t; visible: shell.cfg.showCalendar !== false; Layout.fillHeight: true }
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true; Layout.fillHeight: true; Layout.preferredWidth: 1
+                        spacing: shell.t.gap
+                        visible: reminders.visible || news.visible
+                        RemindersCard { id: reminders; t: shell.t; stored: shell.cfg.reminders || "[]"; visible: shell.cfg.showReminders; onSave: json => shell.saveReminders(json); Layout.fillHeight: !news.visible }
+                        NewsCard { id: news; t: shell.t; dash: shell.dash; visible: shell.cfg.showNews; Layout.fillHeight: true }
+                    }
+                }
+            }
         }
     }
 
-    // Cartões da direita: coluna própria no modo largo, abaixo da lateral nos outros.
-    ColumnLayout {
-        parent: shell.mode === "wide" ? rightHost : sideRightHost
-        width: parent ? parent.width : 0
-        spacing: shell.t.gap
-        MediaCard { t: shell.t; media: shell.media; visible: shell.cfg.showMedia }
-        NetworkCard { t: shell.t; net: shell.net; visible: shell.cfg.showNetwork }
-        RemindersCard { t: shell.t; stored: shell.cfg.reminders || "[]"; visible: shell.cfg.showReminders; onSave: json => shell.saveReminders(json) }
-        NewsCard { t: shell.t; dash: shell.dash; visible: shell.cfg.showNews }
+    Component {
+        id: mediumLayout
+        Item {
+            property alias chat: chatView
+            readonly property int chatWidth: Math.round(Math.max(330, Math.min(400, width * 0.42)))
+            Scroller {
+                id: scroller
+                width: parent.width - chatWidth - shell.t.gap; height: parent.height
+                contentHeight: column.implicitHeight
+                ColumnLayout {
+                    id: column
+                    width: scroller.width - (scroller.contentHeight > scroller.height ? 8 : 0)
+                    spacing: shell.t.gap
+                    HeroPanel { t: shell.t; dash: shell.dash; userName: shell.cfg.userName || ""; mode: "compact"; Layout.fillWidth: true }
+                    CardStack { Layout.fillWidth: true }
+                }
+            }
+            ChatView {
+                id: chatView
+                t: shell.t; client: shell.client
+                x: parent.width - width; width: parent.chatWidth; height: parent.height
+            }
+        }
+    }
+
+    Component {
+        id: narrowLayout
+        Item {
+            property alias chat: chatView
+            Scroller {
+                id: scroller
+                anchors.fill: parent
+                visible: shell.tab === 0
+                contentHeight: column.implicitHeight
+                ColumnLayout {
+                    id: column
+                    width: scroller.width - (scroller.contentHeight > scroller.height ? 8 : 0)
+                    spacing: shell.t.gap
+                    HeroPanel { t: shell.t; dash: shell.dash; userName: shell.cfg.userName || ""; mode: "stacked"; Layout.fillWidth: true }
+                    CardStack { Layout.fillWidth: true }
+                }
+            }
+            ChatView { id: chatView; anchors.fill: parent; visible: shell.tab === 1; t: shell.t; client: shell.client }
+        }
     }
 }

@@ -8,7 +8,7 @@ import "../package/contents/ui/bridge" as Backend
 // --sem-rede oculta o cartão de rede (nome do Wi-Fi e IP) para capturas públicas.
 Window {
     id: win
-    width: 1180; height: 720; visible: true; color: "#0b0c10"
+    width: 1300; height: 820; visible: true; color: "#0b0c10"
     readonly property var args: { const a = Qt.application.arguments; const i = a.indexOf("--"); return i >= 0 ? a.slice(i + 1) : [] }
     readonly property var positional: args.filter(a => !a.startsWith("--"))
     readonly property string outDir: positional[0] || "."
@@ -18,6 +18,7 @@ Window {
         id: cfg
         property string userName: "Pietro"
         property bool showWeather: true; property bool showSystem: true; property bool showConnections: true
+        property bool showCalendar: true
         property bool showMedia: true; property bool showNetwork: !win.hideNetwork; property bool showReminders: true; property bool showNews: true
         property string reminders: '[{"id":"a","text":"Entregar trabalho de cálculo","done":false},{"id":"b","text":"Comprar café","done":true}]'
     }
@@ -39,7 +40,7 @@ Window {
     }
     Timer { id: waitReply; interval: 500; repeat: true; onTriggered: if (!client.busy) { stop(); win.shots() } }
     function shots() {
-        shot("wide", () => { win.width = 900; Qt.callLater(() => delay.start()) })
+        shot("wide", () => { win.width = 980; Qt.callLater(() => delay.start()) })
     }
     Timer { id: delay; interval: 800; onTriggered: win.shot("medium", () => { win.width = 430; win.height = 760; delay2.start() }) }
     Timer { id: delay2; interval: 800; onTriggered: win.shot("narrow", () => Qt.quit()) }

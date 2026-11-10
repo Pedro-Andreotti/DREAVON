@@ -20,17 +20,18 @@ Um widget para KDE Plasma 6 com chat do Claude, música tocando agora, rede, lem
 
 | Cartão | Detalhes |
 | --- | --- |
+| **Painel geral** | A base do widget: horário, saudação, data, cidade e temperatura de agora com máxima/mínima, sensação térmica, umidade, vento, chance de chuva, índice UV e nascer/pôr do sol. Previsão das próximas 12 horas e dos próximos 6 dias, com chance de chuva. |
 | **Chat com o Claude** | Respostas em tempo real e formatadas (negrito, listas, código), texto selecionável e botão de copiar. Escolha de modelo (Opus, Sonnet, Fable, Haiku) e de esforço. Anexe imagens e arquivos pelo clipe ou arrastando para o chat. Histórico com busca para retomar conversas do Claude Code (Desktop, CLI e IDE). |
 | **Cotas** | Barras da cota de 5 horas e semanal, com o tempo até renovar. O ícone do painel mostra a cota de 5 h em um anel. |
 | **Música** | Qualquer player compatível com MPRIS (Spotify, YouTube no navegador, VLC, Elisa…): capa, título, artista, barra de progresso clicável, tocar/pausar, anterior e próxima. |
 | **Rede** | Nome da rede, sinal do Wi-Fi, IP local, latência e gráfico de download/upload em tempo real. |
 | **Lembretes** | Lista rápida com marcar como feito, remover e limpar concluídos. Fica salva nas configurações do widget. |
-| **Clima** | Condição atual e previsão de 7 dias (Open-Meteo), com ícones animados. Cidade escolhida nas configurações ou detectada pela rede. |
-| **Sistema** | CPU, GPU, RAM e disco em anéis com cores por nível de uso. |
+| **Sistema** | CPU, GPU, RAM e disco em anéis com cores por nível de uso, mais processador, temperaturas da CPU e do SSD, memória e swap, carga, processos, tempo ligado, bateria e versão do sistema. |
+| **Calendário** | Mês atual com navegação, hoje destacado, semana do ano e dia do ano. |
 | **Dispositivos** | Bateria do notebook e de periféricos que publicam essa informação (UPower/BlueZ). |
-| **Notícias** | Manchetes do Google News Brasil em rotação, com tema configurável (Tecnologia, Esportes, Economia…). |
+| **Notícias** | Lista de manchetes do Google News Brasil com fonte e horário, tema configurável (Tecnologia, Esportes, Economia…). |
 
-O layout se adapta ao espaço: **3 colunas** em telas largas, **barra lateral + chat** em tamanho médio e **abas** (Chat / Painel) quando estreito, como no painel do Plasma.
+O layout se adapta ao espaço: em telas largas, o **painel geral** fica em cima e os cartões e o chat embaixo, preenchendo todo o espaço; em tamanho médio, painel e cartões rolam à esquerda com o chat ao lado; quando estreito (como no painel do Plasma), há abas **Painel** / **Chat**.
 
 <img src="docs/screenshot-narrow.png" width="260" alt="Plasdria em modo estreito, com abas" />
 
@@ -95,8 +96,8 @@ Pela linha de comando: `./build.sh`, `./install.sh`, `bash tests/run.sh` e `qml6
 | Assistente | Claude Code em modo `-p` com stream-json pela entrada/saída padrão |
 | Música | MPRIS via D-Bus |
 | Rede | `/proc/net/dev`, NetworkManager via D-Bus |
-| Sistema e baterias | `/proc`, `/sys`, UPower e BlueZ; `nvidia-smi` quando disponível |
-| Clima e cidades | Open-Meteo (previsão e geocodificação) |
+| Sistema e baterias | `/proc`, `/sys` (hwmon), UPower e BlueZ; `nvidia-smi` quando disponível |
+| Clima e cidades | Open-Meteo (atual, por hora, 7 dias e geocodificação) |
 | Notícias | RSS do Google News Brasil |
 
 ## Dados e privacidade

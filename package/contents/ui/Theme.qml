@@ -21,7 +21,7 @@ QtObject {
 
     readonly property int radius: 14
     readonly property int gap: 10
-    readonly property int pad: 14
+    readonly property int pad: 12
     readonly property int duration: animations ? 180 : 0
 
     // Uso: verde até 70%, âmbar até 90%, vermelho acima.

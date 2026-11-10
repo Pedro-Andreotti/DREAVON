@@ -1,6 +1,8 @@
 #include "dashboardclient.h"
 
 #include <QDateTime>
+#include <QSysInfo>
+#include <QThread>
 #include <QtDBus>
 #include <memory>
 #include <cmath>
@@ -62,6 +64,7 @@ DashboardClient::DashboardClient(QObject *parent) : QObject(parent) {
     qDBusRegisterMetaType<DBusObjects>();
     m_batteryTimer.setInterval(5000);
     connect(&m_batteryTimer, &QTimer::timeout, this, &DashboardClient::requestBatteries);
+    connect(&m_batteryTimer, &QTimer::timeout, this, &DashboardClient::requestBatteryDetails);
     m_clockTimer.setInterval(1000);
     m_metricsTimer.setInterval(2000);
     m_weatherTimer.setInterval(600000);
@@ -88,6 +91,7 @@ void DashboardClient::start() {
     updateClock();
     updateMetrics();
     requestBatteries();
+    requestBatteryDetails();
     m_batteryTimer.start();
     requestLocation();
     requestNews();
@@ -129,7 +133,84 @@ void DashboardClient::updateClock() {
     emit clockChanged();
 }
 
+namespace {
+QString readText(const QString &path) { QFile f(path); return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()).trimmed() : QString(); }
+
+// Temperatura de um sensor hwmon pelo nome do driver (coretemp, k10temp, nvme…).
+double hwmonTemperature(const QStringList &names) {
+    QDir hwmon(QStringLiteral("/sys/class/hwmon"));
+    for (const auto &entry : hwmon.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        if (!names.contains(readText(hwmon.filePath(entry + "/name")))) continue;
+        bool ok = false; const double milli = readText(hwmon.filePath(entry + "/temp1_input")).toDouble(&ok);
+        if (ok) return milli / 1000.0;
+    }
+    return -1;
+}
+
+QString duration(qint64 seconds) {
+    const qint64 d = seconds / 86400, h = seconds % 86400 / 3600, m = seconds % 3600 / 60;
+    if (d > 0) return QStringLiteral("%1d %2h").arg(d).arg(h);
+    if (h > 0) return QStringLiteral("%1h %2min").arg(h).arg(m);
+    return QStringLiteral("%1min").arg(m);
+}
+}
+
+void DashboardClient::updateSystemDetails() {
+    static const QString cpuModel = [] {
+        QFile f(QStringLiteral("/proc/cpuinfo"));
+        if (!f.open(QIODevice::ReadOnly)) return QString();
+        // Arquivos de /proc informam tamanho 0: lê tudo de uma vez em vez de usar atEnd().
+        for (const QString &line : QString::fromUtf8(f.readAll()).split('\n')) {
+            if (!line.startsWith("model name")) continue;
+            QString name = line.section(':', 1).trimmed();
+            name.remove(QRegularExpression("\\((R|TM|tm|r)\\)")).remove(QRegularExpression("\\s*@.*$"));
+            name.remove(QRegularExpression("\\b(CPU|Processor|\\d+-Core)\\b"));
+            return name.simplified();
+        }
+        return QString();
+    }();
+    QVariantMap d = m_systemDetails;
+    d["cpuModel"] = cpuModel;
+    d["cores"] = QThread::idealThreadCount();
+    d["cpuTemp"] = hwmonTemperature({"coretemp", "k10temp", "zenpower", "cpu_thermal", "acpitz"});
+    d["diskTemp"] = hwmonTemperature({"nvme", "drivetemp"});
+    d["uptime"] = duration(qint64(readText("/proc/uptime").section(' ', 0, 0).toDouble()));
+    const auto load = readText("/proc/loadavg").split(' ');
+    d["load"] = load.mid(0, 3).join("  ");
+    d["processes"] = load.value(3).section('/', 1).toInt();
+    quint64 swapTotal = 0, swapFree = 0;
+    QFile mem(QStringLiteral("/proc/meminfo"));
+    if (mem.open(QIODevice::ReadOnly)) {
+        for (const QString &line : QString::fromUtf8(mem.readAll()).split('\n')) {
+            if (line.startsWith("SwapTotal:")) swapTotal = line.section(':', 1).simplified().section(' ', 0, 0).toULongLong();
+            else if (line.startsWith("SwapFree:")) swapFree = line.section(':', 1).simplified().section(' ', 0, 0).toULongLong();
+        }
+    }
+    d["swapUsedGiB"] = double(swapTotal - swapFree) / 1048576.0;
+    d["swapTotalGiB"] = double(swapTotal) / 1048576.0;
+    d["distro"] = QSysInfo::prettyProductName();
+    d["kernel"] = QSysInfo::kernelVersion().section('-', 0, 0);
+    m_systemDetails = d;
+}
+
+void DashboardClient::requestBatteryDetails() {
+    auto msg = QDBusMessage::createMethodCall("org.freedesktop.UPower", "/org/freedesktop/UPower/devices/DisplayDevice", "org.freedesktop.DBus.Properties", "GetAll");
+    msg << "org.freedesktop.UPower.Device";
+    auto *watcher = new QDBusPendingCallWatcher(QDBusConnection::systemBus().asyncCall(msg, 2500), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this](QDBusPendingCallWatcher *w) {
+        QDBusPendingReply<QVariantMap> reply = *w; w->deleteLater();
+        if (reply.isError() || !reply.value().value("IsPresent").toBool()) return;
+        const auto p = reply.value();
+        const int state = p.value("State").toInt();
+        const qint64 toEmpty = p.value("TimeToEmpty").toLongLong(), toFull = p.value("TimeToFull").toLongLong();
+        m_systemDetails["batteryState"] = state == 1 ? "Carregando" : state == 2 ? "Na bateria" : state == 4 ? "Carregada" : state == 5 ? "Carga pendente" : "Conectada";
+        m_systemDetails["batteryTime"] = state == 1 && toFull > 0 ? duration(toFull) + " para encher" : state == 2 && toEmpty > 0 ? duration(toEmpty) + " restantes" : QString();
+        emit changed();
+    });
+}
+
 void DashboardClient::updateMetrics() {
+    updateSystemDetails();
     QFile cpuFile(QStringLiteral("/proc/stat"));
     if (cpuFile.open(QIODevice::ReadOnly)) {
         const auto line = QString::fromUtf8(cpuFile.readLine());
@@ -259,8 +340,10 @@ void DashboardClient::requestWeather() {
     QUrlQuery query;
     query.addQueryItem(QStringLiteral("latitude"), m_weatherLatitude);
     query.addQueryItem(QStringLiteral("longitude"), m_weatherLongitude);
-    query.addQueryItem(QStringLiteral("current"), QStringLiteral("temperature_2m,relative_humidity_2m,weather_code"));
-    query.addQueryItem(QStringLiteral("daily"), QStringLiteral("temperature_2m_max,temperature_2m_min,weather_code"));
+    query.addQueryItem(QStringLiteral("current"), QStringLiteral("temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,is_day"));
+    query.addQueryItem(QStringLiteral("daily"), QStringLiteral("temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max,uv_index_max,sunrise,sunset"));
+    query.addQueryItem(QStringLiteral("hourly"), QStringLiteral("temperature_2m,weather_code,precipitation_probability"));
+    query.addQueryItem(QStringLiteral("forecast_hours"), QStringLiteral("26"));
     query.addQueryItem(QStringLiteral("timezone"), QStringLiteral("auto"));
     query.addQueryItem(QStringLiteral("forecast_days"), QStringLiteral("7"));
     url.setQuery(query);
@@ -377,6 +460,37 @@ void DashboardClient::parseWeather(const QByteArray &data, bool fromCache) {
     m_weatherSummary = weatherText(current["weather_code"].toInt()) + QStringLiteral(" · ") + (current["temperature_2m"].toDouble() < 18 ? QStringLiteral("Frio") : current["temperature_2m"].toDouble() >= 27 ? QStringLiteral("Calor") : QStringLiteral("Ameno"));
     m_forecast.clear();
     const auto daily = root["daily"].toObject();
+    {
+        // Detalhes de agora e das próximas horas (campos ausentes em caches antigos viram -1/"").
+        auto number = [](const QJsonValue &v) { return v.isDouble() ? v.toDouble() : -1000.0; };
+        auto first = [&daily](const char *key) { return daily[key].toArray().first(); };
+        static const QStringList directions = {"N", "NE", "L", "SE", "S", "SO", "O", "NO"};
+        const double wind = number(current["wind_speed_10m"]), direction = number(current["wind_direction_10m"]);
+        m_weatherDetails = {
+            {"code", current["weather_code"].toInt()},
+            {"isDay", current["is_day"].toInt(1) == 1},
+            {"feelsLike", number(current["apparent_temperature"]) > -999 ? qRound(current["apparent_temperature"].toDouble()) : -1000},
+            {"humidity", number(current["relative_humidity_2m"]) > -999 ? qRound(current["relative_humidity_2m"].toDouble()) : -1},
+            {"wind", wind > -999 ? qRound(wind) : -1},
+            {"windDirection", direction > -999 ? directions.value(int(std::lround(direction / 45.0)) % 8) : QString()},
+            {"rainChance", first("precipitation_probability_max").isDouble() ? first("precipitation_probability_max").toInt() : -1},
+            {"uv", first("uv_index_max").isDouble() ? qRound(first("uv_index_max").toDouble()) : -1},
+            {"sunrise", first("sunrise").toString().mid(11, 5)},
+            {"sunset", first("sunset").toString().mid(11, 5)},
+            {"high", first("temperature_2m_max").isDouble() ? qRound(first("temperature_2m_max").toDouble()) : -1000},
+            {"low", first("temperature_2m_min").isDouble() ? qRound(first("temperature_2m_min").toDouble()) : -1000},
+        };
+        m_hourly.clear();
+        const auto hourly = root["hourly"].toObject();
+        const auto times = hourly["time"].toArray(), temps = hourly["temperature_2m"].toArray();
+        const auto hourCodes = hourly["weather_code"].toArray(), rains = hourly["precipitation_probability"].toArray();
+        const QString nowHour = current["time"].toString().left(13);
+        for (int i = 0; i < times.size() && m_hourly.size() < 12; ++i) {
+            if (times[i].toString().left(13) < nowHour) continue;
+            m_hourly.append(QVariantMap{{"hour", times[i].toString().mid(11, 2) + "h"}, {"temp", qRound(temps[i].toDouble())},
+                {"code", hourCodes[i].toInt()}, {"rain", rains[i].isDouble() ? rains[i].toInt() : -1}, {"now", m_hourly.isEmpty()}});
+        }
+    }
     const auto dates = daily["time"].toArray();
     const auto highs = daily["temperature_2m_max"].toArray();
     const auto lows = daily["temperature_2m_min"].toArray();
@@ -393,6 +507,8 @@ void DashboardClient::parseWeather(const QByteArray &data, bool fromCache) {
         item.insert(QStringLiteral("high"), QString::number(qRound(highs.at(i).toDouble())) + QStringLiteral("°"));
         item.insert(QStringLiteral("low"), QString::number(qRound(lows.at(i).toDouble())) + QStringLiteral("°"));
         item.insert(QStringLiteral("summary"), weatherText(codes.at(i).toInt()));
+        const auto rain = daily["precipitation_probability_max"].toArray().at(i);
+        item.insert(QStringLiteral("rain"), rain.isDouble() ? rain.toInt() : -1);
         m_forecast.append(item);
     }
     m_lastWeatherData = root;
