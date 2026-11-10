@@ -2,165 +2,183 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
-// Painel geral: horário, cidade, temperatura de hoje com detalhes, próximas horas e próximos dias.
-// mode: "full" (tudo em linha), "compact" (agora em cima, previsões embaixo), "stacked" (coluna estreita).
+// Topo do widget: logo, horário, clima resumido e um resumo do que importa agora.
+// mode: "full" (tudo em linha), "compact" (resumo embaixo), "stacked" (coluna estreita).
 Rectangle {
     id: hero
     required property var t
     required property var dash
+    required property var client
+    required property var media
+    required property var net
+    property string reminders: "[]"
     property string userName
     property string mode: "full"
+
     readonly property var w: dash.weatherDetails || ({})
-    readonly property var today: dash.forecast.length ? dash.forecast[0] : null
+    readonly property var sys: dash.systemDetails || ({})
+    readonly property var pending: { try { return JSON.parse(reminders).filter(i => !i.done) } catch (e) { return [] } }
 
     radius: t.radius + 4
     border.color: t.border
     gradient: Gradient {
         orientation: Gradient.Horizontal
-        GradientStop { position: 0; color: Qt.rgba(hero.t.accent.r, hero.t.accent.g, hero.t.accent.b, 0.20) }
-        GradientStop { position: 0.45; color: hero.t.card }
+        GradientStop { position: 0; color: Qt.rgba(hero.t.accent.r, hero.t.accent.g, hero.t.accent.b, 0.18) }
+        GradientStop { position: 0.4; color: hero.t.card }
         GradientStop { position: 1; color: hero.t.card }
     }
-    implicitHeight: grid.implicitHeight + 32
+    implicitHeight: grid.implicitHeight + 28
 
-    function uvLabel(uv) { return uv < 0 ? "" : uv <= 2 ? "baixo" : uv <= 5 ? "moderado" : uv <= 7 ? "alto" : uv <= 10 ? "muito alto" : "extremo" }
     function deg(v) { return v > -999 ? v + "°" : "—" }
+    function until(reset) {
+        const s = reset - Date.now() / 1000
+        if (!(reset > 0) || s <= 0) return ""
+        const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60)
+        return h > 0 ? h + "h " + m + "min" : m + "min"
+    }
+    property real now: Date.now()
+    Timer { interval: 30000; running: true; repeat: true; onTriggered: hero.now = Date.now() }
+
+    // Bloco do resumo: ícone, rótulo, valor e detalhe.
+    component Tile: Rectangle {
+        id: tile
+        property string icon
+        property url image
+        property string label
+        property string value
+        property string detail
+        property color valueColor: hero.t.ink
+        property bool clickable: false
+        signal activated()
+        Layout.fillWidth: true
+        Layout.preferredWidth: 1
+        implicitHeight: 54
+        radius: 11
+        color: tileHover.hovered && clickable ? hero.t.cardRaised : Qt.rgba(1, 1, 1, 0.035)
+        border.color: hero.t.border
+        HoverHandler { id: tileHover; cursorShape: tile.clickable ? Qt.PointingHandCursor : Qt.ArrowCursor }
+        TapHandler { enabled: tile.clickable; onTapped: tile.activated() }
+        RowLayout {
+            anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; spacing: 9
+            Rectangle {
+                Layout.preferredWidth: 30; Layout.preferredHeight: 30; radius: 9
+                color: hero.t.accentSoft
+                Kirigami.Icon { visible: tile.icon !== ""; anchors.centerIn: parent; source: tile.icon; width: 16; height: 16; isMask: true; color: hero.t.accent }
+                Image { visible: tile.image.toString() !== ""; anchors.centerIn: parent; source: tile.image; height: 17; width: 15; fillMode: Image.PreserveAspectFit; smooth: true; mipmap: true }
+            }
+            ColumnLayout {
+                spacing: 0; Layout.fillWidth: true
+                Text { text: tile.label; color: hero.t.muted; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 0.5; font.capitalization: Font.AllUppercase; elide: Text.ElideRight; Layout.fillWidth: true }
+                Text { text: tile.value; color: tile.valueColor; font.pixelSize: 14; font.weight: Font.DemiBold; elide: Text.ElideRight; Layout.fillWidth: true }
+                Text { visible: text !== ""; text: tile.detail; color: hero.t.faint; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
+            }
+        }
+    }
 
     GridLayout {
         id: grid
         anchors.fill: parent
-        anchors.margins: 16
+        anchors.margins: 14
         columns: hero.mode === "full" ? 5 : hero.mode === "compact" ? 3 : 1
-        columnSpacing: 20; rowSpacing: 14
+        columnSpacing: 18; rowSpacing: 12
 
-        // Relógio
+        // Logo + horário
         ColumnLayout {
-            spacing: 0
+            spacing: 2
             Layout.alignment: Qt.AlignTop
-            Layout.preferredWidth: hero.mode === "stacked" ? -1 : 210
             RowLayout {
-                spacing: 4
-                Text { text: (hero.dash.localTime || "--:--").slice(0, 5); color: hero.t.ink; font.pixelSize: 58; font.weight: Font.Light; font.letterSpacing: -2 }
-                Text { text: (hero.dash.localTime || "").slice(6, 8); color: hero.t.faint; font.pixelSize: 18; Layout.alignment: Qt.AlignBottom; Layout.bottomMargin: 12 }
+                spacing: 8
+                Image { source: "assets/icon.png"; Layout.preferredWidth: 26; Layout.preferredHeight: 26; sourceSize: Qt.size(64, 64); smooth: true; mipmap: true }
+                Image { source: "assets/wordmark.png"; Layout.preferredHeight: 17; Layout.preferredWidth: 17 * 468 / 96; smooth: true; mipmap: true; fillMode: Image.PreserveAspectFit }
             }
-            Text { text: (hero.dash.greeting || "Olá") + (hero.userName ? ", " + hero.userName : ""); color: hero.t.accent; font.pixelSize: 15; font.weight: Font.DemiBold }
-            Text { text: hero.dash.localDate || ""; color: hero.t.muted; font.pixelSize: 12; Layout.topMargin: 2 }
+            RowLayout {
+                spacing: 4; Layout.topMargin: 2
+                Text { text: (hero.dash.localTime || "--:--").slice(0, 5); color: hero.t.ink; font.pixelSize: 50; font.weight: Font.Light; font.letterSpacing: -2 }
+                Text { text: (hero.dash.localTime || "").slice(6, 8); color: hero.t.faint; font.pixelSize: 16; Layout.alignment: Qt.AlignBottom; Layout.bottomMargin: 10 }
+            }
+            Text { text: (hero.dash.greeting || "Olá") + (hero.userName ? ", " + hero.userName : ""); color: hero.t.accent; font.pixelSize: 14; font.weight: Font.DemiBold }
+            Text { text: hero.dash.localDate || ""; color: hero.t.muted; font.pixelSize: 12 }
         }
 
         Rectangle { visible: hero.mode !== "stacked"; Layout.fillHeight: true; width: 1; color: hero.t.border }
 
-        // Agora
-        ColumnLayout {
-            spacing: 8
-            Layout.alignment: Qt.AlignTop
-            Layout.preferredWidth: hero.mode === "stacked" ? -1 : 330
-            Layout.fillWidth: hero.mode !== "full"
-            RowLayout {
-                spacing: 12
-                Item {
-                    Layout.preferredWidth: 64; Layout.preferredHeight: 64
-                    WeatherIcon { anchors.centerIn: parent; scale: 1.45; code: hero.w.code !== undefined ? hero.w.code : (hero.today ? hero.today.code : 0); animated: hero.t.animations }
-                }
-                ColumnLayout {
-                    spacing: 0
-                    RowLayout {
-                        spacing: 6
-                        Text { text: hero.dash.weatherTemperature || "—"; color: hero.t.ink; font.pixelSize: 44; font.weight: Font.Light }
-                        ColumnLayout {
-                            spacing: 0; Layout.alignment: Qt.AlignVCenter
-                            Text { text: "↑ " + hero.deg(hero.w.high); color: hero.t.ink; font.pixelSize: 12 }
-                            Text { text: "↓ " + hero.deg(hero.w.low); color: hero.t.muted; font.pixelSize: 12 }
-                        }
-                    }
-                    RowLayout {
-                        spacing: 4
-                        Kirigami.Icon { source: "mark-location-symbolic"; implicitWidth: 14; implicitHeight: 14; isMask: true; color: hero.t.accent }
-                        Text { text: hero.dash.weatherLocation || "—"; color: hero.t.ink; font.pixelSize: 15; font.weight: Font.DemiBold }
-                    }
-                    Text {
-                        text: (hero.dash.weatherSummary || "").split(" · ")[0] || hero.dash.weatherStatus
-                        color: hero.t.muted; font.pixelSize: 12
-                    }
-                }
+        // Clima resumido
+        RowLayout {
+            spacing: 10
+            Layout.alignment: hero.mode === "stacked" ? Qt.AlignLeft : Qt.AlignVCenter
+            Item {
+                Layout.preferredWidth: 56; Layout.preferredHeight: 56
+                WeatherIcon { anchors.centerIn: parent; scale: 1.3; code: hero.w.code !== undefined ? hero.w.code : (hero.dash.forecast.length ? hero.dash.forecast[0].code : 0); animated: hero.t.animations }
             }
-            Flow {
-                Layout.fillWidth: true; spacing: 6
-                Repeater {
-                    model: [
-                        {icon: "temperature-normal", text: "Sensação " + hero.deg(hero.w.feelsLike), show: hero.w.feelsLike > -999},
-                        {icon: "raindrop", text: "Umidade " + hero.w.humidity + "%", show: hero.w.humidity >= 0},
-                        {glyph: "≈", text: "Vento " + hero.w.wind + " km/h " + (hero.w.windDirection || ""), show: hero.w.wind >= 0},
-                        {icon: "weather-showers-scattered-symbolic", text: "Chuva " + hero.w.rainChance + "%", show: hero.w.rainChance >= 0},
-                        {icon: "weather-clear-symbolic", text: "UV " + hero.w.uv + " · " + hero.uvLabel(hero.w.uv), show: hero.w.uv >= 0},
-                        {glyph: "☀", text: "Sol " + (hero.w.sunrise || "") + " – " + (hero.w.sunset || ""), show: !!hero.w.sunrise}
-                    ].filter(c => c.show)
-                    delegate: Rectangle {
-                        required property var modelData
-                        height: 24; width: chipRow.implicitWidth + 16; radius: 12
-                        color: Qt.rgba(1, 1, 1, 0.05); border.color: hero.t.border
-                        Row {
-                            id: chipRow; anchors.centerIn: parent; spacing: 5
-                            Kirigami.Icon { visible: !!modelData.icon; source: modelData.icon || ""; width: 13; height: 13; isMask: true; color: hero.t.accent; anchors.verticalCenter: parent.verticalCenter }
-                            Text { visible: !!modelData.glyph; text: modelData.glyph || ""; color: hero.t.accent; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: modelData.text; color: hero.t.ink; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
-                        }
-                    }
+            ColumnLayout {
+                spacing: 0
+                RowLayout {
+                    spacing: 8
+                    Text { text: hero.dash.weatherTemperature || "—"; color: hero.t.ink; font.pixelSize: 38; font.weight: Font.Light }
+                    Text { text: "↑" + hero.deg(hero.w.high) + "  ↓" + hero.deg(hero.w.low); color: hero.t.muted; font.pixelSize: 12; Layout.alignment: Qt.AlignVCenter }
+                }
+                RowLayout {
+                    spacing: 4
+                    Kirigami.Icon { source: "mark-location-symbolic"; implicitWidth: 13; implicitHeight: 13; isMask: true; color: hero.t.accent }
+                    Text { text: hero.dash.weatherLocation || "—"; color: hero.t.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
+                    Text { text: "· " + ((hero.dash.weatherSummary || "").split(" · ")[0] || hero.dash.weatherStatus); color: hero.t.muted; font.pixelSize: 12; elide: Text.ElideRight; Layout.maximumWidth: 170 }
                 }
             }
         }
 
         Rectangle { visible: hero.mode === "full"; Layout.fillHeight: true; width: 1; color: hero.t.border }
 
-        // Próximas horas + próximos dias
-        ColumnLayout {
+        // Resumo do que importa agora
+        GridLayout {
             Layout.fillWidth: true
             Layout.columnSpan: hero.mode === "compact" ? 3 : 1
-            Layout.alignment: Qt.AlignTop
-            spacing: 6
-            Text { text: "PRÓXIMAS HORAS"; color: hero.t.muted; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 0.8 }
-            RowLayout {
-                Layout.fillWidth: true; spacing: 0
-                Repeater {
-                    model: hero.mode === "stacked" ? hero.dash.hourly.slice(0, 6) : hero.dash.hourly
-                    // Cada hora é um Item que estica, com o conteúdo centralizado (layouts aninhados não esticam sozinhos).
-                    delegate: Item {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        implicitWidth: hourCol.implicitWidth; implicitHeight: hourCol.implicitHeight
-                        ColumnLayout {
-                        id: hourCol; anchors.horizontalCenter: parent.horizontalCenter; spacing: 1
-                        Text { text: modelData.now ? "Agora" : modelData.hour; color: modelData.now ? hero.t.accent : hero.t.muted; font.pixelSize: 10; font.weight: modelData.now ? Font.DemiBold : Font.Normal; Layout.alignment: Qt.AlignHCenter }
-                        Item { Layout.preferredWidth: 24; Layout.preferredHeight: 22; Layout.alignment: Qt.AlignHCenter
-                            WeatherIcon { anchors.centerIn: parent; code: modelData.code; animated: false; scale: 0.52 } }
-                        Text { text: modelData.temp + "°"; color: hero.t.ink; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
-                        Text { text: modelData.rain > 0 ? modelData.rain + "%" : " "; color: "#7cc4ff"; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
-                        }
-                    }
-                }
+            Layout.alignment: Qt.AlignVCenter
+            columns: hero.mode === "stacked" ? 2 : 3
+            columnSpacing: 8; rowSpacing: 8
+
+            Tile {
+                image: "assets/mark.png"
+                label: "Claude"
+                readonly property real free: hero.client.fiveHourUsed < 0 ? -1 : 100 - hero.client.fiveHourUsed
+                value: free < 0 ? hero.client.status : Math.round(free) + "% livre (5h)"
+                valueColor: free < 0 ? hero.t.ink : hero.t.levelColor(free)
+                detail: { hero.now; const r = hero.until(hero.client.fiveHourReset); return (r ? "renova em " + r : "") + (hero.client.weeklyUsed >= 0 ? (r ? " · " : "") + "semana " + Math.round(100 - hero.client.weeklyUsed) + "%" : "") }
             }
-            Rectangle { Layout.fillWidth: true; height: 1; color: hero.t.border }
-            Text { text: "PRÓXIMOS DIAS"; color: hero.t.muted; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 0.8 }
-            RowLayout {
-                Layout.fillWidth: true; spacing: 0
-                Repeater {
-                    model: hero.mode === "stacked" ? hero.dash.forecast.slice(1, 5) : hero.dash.forecast.slice(1)
-                    delegate: Item {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        implicitWidth: dayRow.implicitWidth; implicitHeight: dayRow.implicitHeight
-                        RowLayout {
-                        id: dayRow; anchors.horizontalCenter: parent.horizontalCenter; spacing: 4
-                        Item { Layout.preferredWidth: 22; Layout.preferredHeight: 22
-                            WeatherIcon { anchors.centerIn: parent; code: modelData.code; animated: false; scale: 0.52 } }
-                        ColumnLayout {
-                            spacing: 0
-                            Text { text: modelData.day.slice(0, 3); color: hero.t.muted; font.pixelSize: 10 }
-                            Text { text: modelData.high + " " + modelData.low; color: hero.t.ink; font.pixelSize: 11 }
-                            Text { visible: modelData.rain > 0; text: modelData.rain + "%"; color: "#7cc4ff"; font.pixelSize: 9 }
-                        }
-                        }
-                    }
-                }
+            Tile {
+                icon: "view-task-symbolic"
+                label: "Lembretes"
+                value: hero.pending.length === 0 ? "Tudo em dia" : hero.pending.length + (hero.pending.length === 1 ? " pendente" : " pendentes")
+                valueColor: hero.pending.length === 0 ? hero.t.good : hero.t.ink
+                detail: hero.pending.length ? hero.pending[0].text : "Nada para lembrar"
+            }
+            Tile {
+                icon: hero.dash.batteryPercent >= 0 ? "battery-good-symbolic" : "computer-symbolic"
+                label: "Bateria"
+                value: hero.dash.batteryPercent >= 0 ? Math.round(hero.dash.batteryPercent) + "%" : "Na tomada"
+                valueColor: hero.t.levelColor(hero.dash.batteryPercent)
+                detail: [hero.sys.batteryState, hero.sys.batteryTime].filter(Boolean).join(" · ")
+            }
+            Tile {
+                icon: "network-wireless-symbolic"
+                label: "Internet"
+                value: hero.net.online ? hero.net.latency + " ms" : "Sem conexão"
+                valueColor: !hero.net.online ? hero.t.bad : hero.net.latency < 80 ? hero.t.good : hero.net.latency < 200 ? hero.t.warn : hero.t.bad
+                detail: [hero.net.connectionName, "↓ " + hero.net.formatRate(hero.net.downloadRate)].filter(Boolean).join(" · ")
+            }
+            Tile {
+                icon: hero.media.playing ? "media-playback-pause" : "media-playback-start-symbolic"
+                label: hero.media.available ? "Tocando · " + hero.media.player : "Música"
+                value: hero.media.available ? (hero.media.title || "Sem título") : "Nada tocando"
+                detail: hero.media.available ? (hero.media.artist || (hero.media.playing ? "Clique para pausar" : "Clique para tocar")) : "Abra um player"
+                clickable: hero.media.available
+                onActivated: hero.media.playPause()
+            }
+            Tile {
+                icon: "computer-symbolic"
+                label: "Computador"
+                value: "CPU " + (hero.dash.cpuUsage >= 0 ? Math.round(hero.dash.cpuUsage) + "%" : "—") + (hero.sys.cpuTemp > 0 ? " · " + Math.round(hero.sys.cpuTemp) + "°C" : "")
+                valueColor: hero.t.usageColor(hero.dash.cpuUsage)
+                detail: "RAM " + (hero.dash.memoryUsage >= 0 ? Math.round(hero.dash.memoryUsage) + "%" : "—") + (hero.sys.uptime ? " · ligado há " + hero.sys.uptime : "")
             }
         }
     }

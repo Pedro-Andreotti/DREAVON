@@ -23,7 +23,7 @@ Card {
             ]
             delegate: Ring {
                 required property var modelData
-                Layout.fillWidth: true; Layout.preferredHeight: 58
+                Layout.fillWidth: true; Layout.preferredHeight: 54
                 value: modelData.value; caption: modelData.name
                 color: card.t.usageColor(modelData.value); track: card.t.border
                 ink: card.t.ink; mutedInk: card.t.muted; duration: card.t.animations ? 500 : 0
@@ -42,8 +42,6 @@ Card {
                 ["Memória", card.gib(card.dash.memoryUsedGiB, card.dash.memoryTotalGiB) + (card.d.swapTotalGiB > 0 ? "  ·  swap " + card.d.swapUsedGiB.toFixed(1) + " GiB" : "")],
                 ["Disco", card.gib(card.dash.storageUsedGiB, card.dash.storageTotalGiB)],
                 ["Carga", (card.d.load || "—") + (card.d.processes ? "  ·  " + card.d.processes + " processos" : "")],
-                ["Ligado há", card.d.uptime || "—"],
-                ["Bateria", [card.d.batteryState, card.d.batteryTime].filter(Boolean).join(" · ") || "—"],
                 ["Sistema", [card.d.distro, card.d.kernel ? "kernel " + card.d.kernel : ""].filter(Boolean).join(" · ") || "—"]
             ]
             delegate: Repeater {

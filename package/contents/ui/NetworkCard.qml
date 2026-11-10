@@ -34,7 +34,7 @@ Card {
         }
     }
     Sparkline {
-        Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 42; Layout.preferredHeight: 42
+        Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 16; Layout.preferredHeight: 18
         values: card.net.downloadHistory; secondary: card.net.uploadHistory
         color: card.t.accent; secondaryColor: card.t.good
     }

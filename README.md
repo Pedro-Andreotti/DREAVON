@@ -20,7 +20,8 @@ Um widget para KDE Plasma 6 com chat do Claude, música tocando agora, rede, lem
 
 | Cartão | Detalhes |
 | --- | --- |
-| **Painel geral** | A base do widget: horário, saudação, data, cidade e temperatura de agora com máxima/mínima, sensação térmica, umidade, vento, chance de chuva, índice UV e nascer/pôr do sol. Previsão das próximas 12 horas e dos próximos 6 dias, com chance de chuva. |
+| **Painel geral** | A base do widget: logo do Plasdria, horário, saudação, data e clima resumido (temperatura, máxima/mínima, cidade e condição). Ao lado, um resumo do que importa agora: cota do Claude, lembretes pendentes, bateria, internet, música tocando (clique para pausar) e uso do computador. |
+| **Rodapé do clima** | Detalhes de hoje (sensação, umidade, vento, chuva, UV e sol), as próximas horas e a semana, com chance de chuva. |
 | **Chat com o Claude** | Respostas em tempo real e formatadas (negrito, listas, código), texto selecionável e botão de copiar. Escolha de modelo (Opus, Sonnet, Fable, Haiku) e de esforço. Anexe imagens e arquivos pelo clipe ou arrastando para o chat. Histórico com busca para retomar conversas do Claude Code (Desktop, CLI e IDE). |
 | **Cotas** | Barras da cota de 5 horas e semanal, com o tempo até renovar. O ícone do painel mostra a cota de 5 h em um anel. |
 | **Música** | Qualquer player compatível com MPRIS (Spotify, YouTube no navegador, VLC, Elisa…): capa, título, artista, barra de progresso clicável, tocar/pausar, anterior e próxima. |

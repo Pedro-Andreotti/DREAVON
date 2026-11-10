@@ -59,6 +59,7 @@ Item {
         CalendarCard { t: shell.t; visible: shell.cfg.showCalendar !== false }
         RemindersCard { t: shell.t; stored: shell.cfg.reminders || "[]"; visible: shell.cfg.showReminders; onSave: json => shell.saveReminders(json) }
         NewsCard { t: shell.t; dash: shell.dash; visible: shell.cfg.showNews; listHeight: 300 }
+        WeatherFooter { t: shell.t; dash: shell.dash; compact: true; Layout.fillWidth: true }
     }
 
     component Scroller: Flickable {
@@ -73,23 +74,37 @@ Item {
             HeroPanel {
                 id: hero
                 width: parent.width
-                t: shell.t; dash: shell.dash; userName: shell.cfg.userName || ""; mode: "full"
+                t: shell.t; dash: shell.dash; client: shell.client; media: shell.media; net: shell.net; reminders: shell.cfg.reminders || "[]"; userName: shell.cfg.userName || ""; mode: "full"
+            }
+            WeatherFooter {
+                id: footer
+                t: shell.t; dash: shell.dash
+                width: parent.width
+                y: parent.height - height
             }
             Item {
                 id: lower
                 y: hero.height + shell.t.gap
-                width: parent.width; height: parent.height - y
+                width: parent.width; height: footer.y - shell.t.gap - y
                 readonly property bool hasLeft: shell.cfg.showSystem || shell.cfg.showConnections || shell.cfg.showNetwork
                 readonly property int leftWidth: hasLeft ? 286 : 0
                 readonly property int chatWidth: Math.round(Math.max(340, Math.min(440, width * 0.32)))
 
-                ColumnLayout {
+                // Rola só se o conteúdo não couber; se couber, o último cartão estica até o fim.
+                Scroller {
+                    id: leftScroll
                     visible: lower.hasLeft
                     width: lower.leftWidth; height: lower.height
+                    contentHeight: Math.max(height, leftColumn.implicitHeight)
+                ColumnLayout {
+                    id: leftColumn
+                    width: leftScroll.width - (leftColumn.implicitHeight > leftScroll.height ? 8 : 0)
+                    height: leftScroll.contentHeight
                     spacing: shell.t.gap
                     SystemCard { id: system; t: shell.t; dash: shell.dash; visible: shell.cfg.showSystem; Layout.fillHeight: !devices.visible && !network.visible }
                     ConnectionsCard { id: devices; t: shell.t; dash: shell.dash; visible: shell.cfg.showConnections; Layout.fillHeight: !network.visible }
                     NetworkCard { id: network; t: shell.t; net: shell.net; visible: shell.cfg.showNetwork; Layout.fillHeight: true; Layout.minimumHeight: implicitHeight }
+                }
                 }
 
                 ChatView {
@@ -136,7 +151,7 @@ Item {
                     id: column
                     width: scroller.width - (scroller.contentHeight > scroller.height ? 8 : 0)
                     spacing: shell.t.gap
-                    HeroPanel { t: shell.t; dash: shell.dash; userName: shell.cfg.userName || ""; mode: "compact"; Layout.fillWidth: true }
+                    HeroPanel { t: shell.t; dash: shell.dash; client: shell.client; media: shell.media; net: shell.net; reminders: shell.cfg.reminders || "[]"; userName: shell.cfg.userName || ""; mode: "compact"; Layout.fillWidth: true }
                     CardStack { Layout.fillWidth: true }
                 }
             }
@@ -161,7 +176,7 @@ Item {
                     id: column
                     width: scroller.width - (scroller.contentHeight > scroller.height ? 8 : 0)
                     spacing: shell.t.gap
-                    HeroPanel { t: shell.t; dash: shell.dash; userName: shell.cfg.userName || ""; mode: "stacked"; Layout.fillWidth: true }
+                    HeroPanel { t: shell.t; dash: shell.dash; client: shell.client; media: shell.media; net: shell.net; reminders: shell.cfg.reminders || "[]"; userName: shell.cfg.userName || ""; mode: "stacked"; Layout.fillWidth: true }
                     CardStack { Layout.fillWidth: true }
                 }
             }
