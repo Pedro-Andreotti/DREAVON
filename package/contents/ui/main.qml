@@ -14,19 +14,19 @@ PlasmoidItem {
 
     toolTipMainText: "Plasdria"
     toolTipSubText: {
-        const used = client.fiveHourUsed
-        return "Claude · " + client.status + (used >= 0 ? " · " + Math.round(100 - used) + "% da cota de 5h livre" : "")
+        const used = claudeBackend.fiveHourUsed
+        return "Claude · " + claudeBackend.status + (used >= 0 ? " · " + Math.round(100 - used) + "% da cota de 5h livre" : "")
     }
 
     Theme {
-        id: theme
+        id: themeBackend
         accent: root.cfg.accentColor || "#3daee9"
         backgroundOpacity: (root.cfg.backgroundOpacity || 94) / 100
         animations: root.cfg.animations
     }
 
     Backend.ClaudeClient {
-        id: client
+        id: claudeBackend
         property bool defaultsApplied: false
         Component.onCompleted: start()
         onChanged: {
@@ -37,44 +37,44 @@ PlasmoidItem {
         }
     }
     function applyModelDefaults() {
-        if (client.models.some(m => m.id === cfg.defaultModel)) client.model = cfg.defaultModel
-        if (client.efforts.indexOf(cfg.defaultEffort) >= 0) client.effort = cfg.defaultEffort
+        if (claudeBackend.models.some(m => m.id === cfg.defaultModel)) claudeBackend.model = cfg.defaultModel
+        if (claudeBackend.efforts.indexOf(cfg.defaultEffort) >= 0) claudeBackend.effort = cfg.defaultEffort
     }
 
     Backend.DashboardClient {
-        id: dash
+        id: dashBackend
         Component.onCompleted: { root.applyLocation(); setNewsTopic(root.cfg.newsTopic || ""); start() }
     }
     function applyLocation() {
-        if (cfg.autoLocation) dash.setLocation("", 0, 0)
-        else dash.setLocation(cfg.cityName, cfg.cityLatitude, cfg.cityLongitude)
+        if (cfg.autoLocation) dashBackend.setLocation("", 0, 0)
+        else dashBackend.setLocation(cfg.cityName, cfg.cityLatitude, cfg.cityLongitude)
     }
     readonly property string locationKey: [cfg.autoLocation, cfg.cityName, cfg.cityLatitude, cfg.cityLongitude].join("|")
     onLocationKeyChanged: applyLocation()
     readonly property string newsTopic: cfg.newsTopic || ""
-    onNewsTopicChanged: dash.setNewsTopic(newsTopic)
+    onNewsTopicChanged: dashBackend.setNewsTopic(newsTopic)
     readonly property string modelKey: cfg.defaultModel + "|" + cfg.defaultEffort
-    onModelKeyChanged: if (client.ready && !client.busy) applyModelDefaults()
+    onModelKeyChanged: if (claudeBackend.ready && !claudeBackend.busy) applyModelDefaults()
 
-    Backend.MediaClient { id: media }
-    Backend.NetworkClient { id: net }
+    Backend.MediaClient { id: mediaBackend }
+    Backend.NetworkClient { id: netBackend }
 
     Plasmoid.contextualActions: [
         PlasmaCore.Action {
             text: "Nova conversa"
             icon.name: "list-add"
-            onTriggered: { client.newChat(); root.expanded = true }
+            onTriggered: { claudeBackend.newChat(); root.expanded = true }
         },
         PlasmaCore.Action {
             text: "Reconectar ao Claude"
             icon.name: "view-refresh"
-            onTriggered: client.reconnect()
+            onTriggered: claudeBackend.reconnect()
         }
     ]
 
     fullRepresentation: Shell {
         id: shell
-        t: theme; client: client; dash: dash; media: media; net: net; cfg: root.cfg
+        t: themeBackend; client: claudeBackend; dash: dashBackend; media: mediaBackend; net: netBackend; cfg: root.cfg
         onSaveReminders: json => root.cfg.reminders = json
         Layout.minimumWidth: 340
         Layout.minimumHeight: 480
@@ -87,7 +87,7 @@ PlasmoidItem {
     }
 
     compactRepresentation: CompactIcon {
-        t: theme; client: client
+        t: themeBackend; client: claudeBackend
         onClicked: root.expanded = !root.expanded
     }
 }
