@@ -1,0 +1,36 @@
+import QtQuick
+import QtQuick.Layouts
+import org.kde.kirigami as Kirigami
+
+// Cartão com título, ícone e uma área de ações opcional à direita.
+Rectangle {
+    id: card
+    required property var t
+    property string title
+    property string icon
+    property alias actions: actionRow.data
+    default property alias content: body.data
+    property int padding: t.pad
+
+    radius: t.radius
+    color: t.card
+    border.color: t.border
+    implicitHeight: column.implicitHeight + padding * 2
+    Layout.fillWidth: true
+
+    ColumnLayout {
+        id: column
+        anchors.fill: parent
+        anchors.margins: card.padding
+        spacing: 10
+        RowLayout {
+            visible: card.title !== ""
+            Layout.fillWidth: true
+            spacing: 7
+            Kirigami.Icon { visible: card.icon !== ""; source: card.icon; implicitWidth: 15; implicitHeight: 15; color: card.t.accent; isMask: true }
+            Text { text: card.title; color: card.t.muted; font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: 0.8; font.capitalization: Font.AllUppercase; Layout.fillWidth: true; elide: Text.ElideRight }
+            Row { id: actionRow; spacing: 2 }
+        }
+        ColumnLayout { id: body; Layout.fillWidth: true; Layout.fillHeight: true; spacing: 8 }
+    }
+}

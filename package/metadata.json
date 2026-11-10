@@ -1,0 +1,14 @@
+{
+  "KPlugin": {
+    "Id": "local.plasdria",
+    "Name": "Plasdria",
+    "Description": "Assistente Claude, música, rede, lembretes, clima e sistema em um painel.",
+    "Icon": "plasdria",
+    "Category": "Online Services",
+    "Version": "2.0.0",
+    "License": "MIT",
+    "Authors": [{"Name": "Projeto pessoal"}]
+  },
+  "KPackageStructure": "Plasma/Applet",
+  "X-Plasma-API-Minimum-Version": "6.0"
+}

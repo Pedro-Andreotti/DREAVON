@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Compilar", "type": "shell", "command": "./build.sh", "group": { "kind": "build", "isDefault": true }, "problemMatcher": ["$gcc"] },
+    { "label": "Instalar no Plasma", "type": "shell", "command": "./install.sh", "problemMatcher": ["$gcc"] },
+    { "label": "Recarregar o Plasma", "type": "shell", "command": "systemctl --user restart plasma-plasmashell.service", "problemMatcher": [] },
+    { "label": "Testes", "type": "shell", "command": "bash tests/run.sh", "group": { "kind": "test", "isDefault": true }, "problemMatcher": ["$gcc"] },
+    {
+      "label": "Prévia (capturas)", "type": "shell",
+      "command": "mkdir -p build/preview && QT_QPA_PLATFORMTHEME=kde QT_QPA_PLATFORM=offscreen qml6 tools/preview.qml -- build/preview --sem-rede && echo 'Capturas em build/preview/'",
+      "dependsOn": "Compilar", "problemMatcher": []
+    }
+  ]
+}

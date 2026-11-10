@@ -1,0 +1,19 @@
+{
+  "files.associations": { "*.pro": "makefile", "qmldir": "plaintext" },
+  "files.exclude": { "**/moc_*.cpp": true, "**/*.moc": true, "**/*.o": true },
+  "C_Cpp.default.cppStandard": "c++17",
+  "C_Cpp.default.includePath": [
+    "${workspaceFolder}/native",
+    "/usr/include/qt6",
+    "/usr/include/qt6/QtCore",
+    "/usr/include/qt6/QtGui",
+    "/usr/include/qt6/QtQml",
+    "/usr/include/qt6/QtNetwork",
+    "/usr/include/qt6/QtDBus",
+    "/usr/include/qt6/QtConcurrent"
+  ],
+  "C_Cpp.default.defines": ["QT_CORE_LIB", "QT_QML_LIB", "QT_GUI_LIB", "QT_NETWORK_LIB", "QT_DBUS_LIB"],
+  "qt-qml.qmlls.additionalImportPaths": ["/usr/lib/qt6/qml"],
+  "editor.tabSize": 4,
+  "files.trimTrailingWhitespace": true
+}

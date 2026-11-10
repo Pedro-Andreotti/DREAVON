@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "theqtcompany.qt-qml",
+    "theqtcompany.qt-core",
+    "ms-vscode.cpptools",
+    "ms-python.python"
+  ]
+}
