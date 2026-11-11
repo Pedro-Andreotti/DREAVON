@@ -278,8 +278,18 @@ QString antigravityAnnotationTitle(const QString &id) {
     return {};
 }
 
+// Mesma pasta? No Windows o sistema de arquivos ignora maiúsculas (ex.: "DREAVON\workspace" e
+// ".../dreavon/workspace"), e o cleanPath já troca "\" por "/".
+bool samePath(const QString &a, const QString &b) {
+#ifdef Q_OS_WIN
+    return QDir::cleanPath(a).compare(QDir::cleanPath(b), Qt::CaseInsensitive) == 0;
+#else
+    return QDir::cleanPath(a) == QDir::cleanPath(b);
+#endif
+}
+
 QString sessionSource(const QString &cwd, const QString &entrypoint, const QString &pragusWorkspace) {
-    if (!cwd.isEmpty() && QDir::cleanPath(cwd) == QDir::cleanPath(pragusWorkspace)) return "Pragus";
+    if (!cwd.isEmpty() && samePath(cwd, pragusWorkspace)) return "Pragus";
     if (entrypoint == "cli") return "CLI";
     if (entrypoint == "claude-desktop") return "Desktop";
     if (entrypoint.contains("vscode") || entrypoint.contains("jetbrains") || entrypoint.contains("ide")) return "IDE";
@@ -294,7 +304,7 @@ QVariantMap summary(const QJsonObject &thread, const QString &pragusWorkspace) {
     const QString kind = source.isString() ? source.toString() : source.toObject().value("custom").toString();
     QString label = "Codex local";
     const QString cwd = thread.value("cwd").toString();
-    if (!cwd.isEmpty() && QDir::cleanPath(cwd) == QDir::cleanPath(pragusWorkspace)) label = "Pragus";
+    if (!cwd.isEmpty() && samePath(cwd, pragusWorkspace)) label = "Pragus";
     else if (kind == "cli" || kind == "exec") label = "CLI";
     else if (kind == "vscode") label = "IDE";
     else if (kind == "appServer" || source.toObject().contains("custom")) label = "Desktop / app";
@@ -603,7 +613,7 @@ QVariantMap antigravitySessionSummary(const QString &path, const QString &pragus
     QString title = antigravityAnnotationTitle(id);
     if (title.isEmpty()) title = preview.section('\n', 0, 0).left(120);
     QString source = "Antigravity";
-    if (fromPragus || (hasExplicitCwd && QDir::cleanPath(cwd) == QDir::cleanPath(pragusWorkspace))) source = "Pragus";
+    if (fromPragus || (hasExplicitCwd && samePath(cwd, pragusWorkspace))) source = "Pragus";
     else if (rootPath.endsWith("antigravity-cli")) source = "CLI";
     else source = "IDE";
     return {{"id", id}, {"title", title}, {"preview", preview.left(300)},
