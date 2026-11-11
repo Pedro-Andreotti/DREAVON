@@ -1,139 +1,94 @@
-> **DREAVON** é uma adaptação para **Windows** do [Plasdria](https://github.com/PietroAlexandria/Plasdria), widget para KDE Plasma criado por Pietro Alexandria (MIT). Este repositório parte do histórico original e está em desenvolvimento; o texto abaixo ainda descreve o projeto Linux. Veja o plano da adaptação em [docs/windows-port.md](docs/windows-port.md).
-
 <div align="center">
 
-<img src="docs/banner.png" width="720" alt="Plasdria — Widget para KDE Plasma" />
+<img src="docs/brand/dreavon-banner.svg" width="900" alt="DREAVON — System Intelligence" />
 
-**Seu assistente, sua música, sua rede e seu dia. Na área de trabalho.**
+**O guardião silencioso da sua área de trabalho.**
 
-Um widget para KDE Plasma 6 com chat integrado ao **Antigravity**, **Claude** e outras IAs (**Codex**, **Gemini CLI**, **Ollama** e **APIs compatíveis com OpenAI**), música tocando agora, rede, lembretes, clima, notícias e monitoramento do sistema — em um painel escuro, responsivo e configurável.
+Um widget de desktop para **Windows** com chat multi-IA, música, rede, lembretes, clima, notícias e monitoramento do sistema, em um painel escuro e futurista.
 
-![KDE Plasma 6](https://img.shields.io/badge/KDE-Plasma%206-1D99F3?style=flat-square)
+![Status](https://img.shields.io/badge/status-em%20desenvolvimento-2f8bff?style=flat-square)
+![Windows](https://img.shields.io/badge/alvo-Windows-0b0e14?style=flat-square&logo=windows&logoColor=a9b1bf)
 ![Qt 6](https://img.shields.io/badge/Qt-6-41CD52?style=flat-square)
 ![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C?style=flat-square)
-![Antigravity](https://img.shields.io/badge/Google%20DeepMind-Antigravity-4285F4?style=flat-square)
-![Claude Code](https://img.shields.io/badge/Claude-Code-D97757?style=flat-square)
 ![Licença MIT](https://img.shields.io/badge/Licen%C3%A7a-MIT-a4a5b0?style=flat-square)
-
-<img src="docs/screenshot.png" width="900" alt="Plasdria em tela larga: relógio, clima, sistema, chat de IA, música, lembretes e notícias" />
 
 </div>
 
-## O que ele faz
+> **Em desenvolvimento.** O DREAVON ainda não roda no Windows. O código atual é a base herdada do [Plasdria](https://github.com/PietroAlexandria/Plasdria), um widget para KDE Plasma (Linux), e está sendo adaptado em etapas. Acompanhe o andamento no [roadmap](#roadmap).
 
-| Cartão | Detalhes |
+## O que é o DREAVON
+
+O DREAVON (*System Intelligence*) reúne em um só painel o que importa durante o dia: um assistente de IA, o que está tocando, a saúde do computador e da rede, e os compromissos. A ideia é ser discreto como um guardião: fica ali, em silêncio, e mostra o que precisa quando você olha.
+
+A identidade segue o mesmo espírito:
+
+| Elemento | Escolha |
 | --- | --- |
-| **Painel geral** | A base do widget: logo do Plasdria, horário, saudação, data e clima resumido (temperatura, máxima/mínima, cidade e condição). Ao lado, um resumo do que importa agora: cota da IA ativa (clique para alternar entre IAs), lembretes pendentes, bateria, internet, música tocando (clique para pausar) e uso do computador. |
-| **Rodapé do clima** | Detalhes de hoje (sensação, umidade, vento, chuva, UV e sol), as próximas horas e a semana, com chance de chuva. |
-| **Chat multi-IA** | Alterne a qualquer momento entre **Antigravity** (`agy`), **Claude** (`claude`), **Codex** (`codex`), **Gemini CLI** (`gemini`), **Ollama** (modelos locais em `localhost:11434`) e **API Compatível** (OpenAI, OpenRouter, Groq, DeepSeek, LM Studio) pelo seletor no topo do chat ou com `/ia <nome>`. Se trocar de IA no meio de uma conversa, o histórico na tela é mantido e enviado como contexto para a outra IA continuar de onde parou. Respostas em tempo real e formatadas (Markdown), escolha de modelo e nível de esforço, anexos de imagens/arquivos e histórico com busca e importação de conversas. |
-| **Cotas** | Barras da cota de 5 horas e semanal para Antigravity (separadas por família de modelo: Gemini 4 Argon, Gemini e Claude/GPT) e Claude Code, com o tempo até renovar. O ícone do painel mostra a cota de 5 h em um anel. |
-| **Música** | Qualquer player compatível com MPRIS (Spotify, YouTube no navegador, VLC, Elisa…): capa, título, artista, barra de progresso clicável, tocar/pausar, anterior, próxima, aleatório, repetir e volume. O Spotify tem prioridade e um botão para abrir. A última música fica lembrada com a capa guardada: com o player fechado ou sem internet ela continua aparecendo, e um clique abre o Spotify e retoma do ponto em que parou. |
-| **Rede** | Nome da rede, sinal do Wi-Fi, IP local, latência e gráfico de download/upload em tempo real. |
-| **Lembretes** | Lista rápida com marcar como feito, remover e limpar concluídos. Escreva o horário na frase (“ligar para o João **amanhã 9h**”, “remédio **em 20 min**”, “dentista **sexta 14h30**”) e o lembrete vira um **alarme**: o Plasdria avisa com uma notificação do sistema na hora, mesmo com o painel fechado, e dá para adiar 10 minutos. Fica salva nas configurações do widget. |
-| **Sistema** | CPU, GPU, RAM e disco em anéis com cores por nível de uso, mais processador, temperaturas da CPU e do SSD, memória e swap, carga, processos, tempo ligado, bateria e versão do sistema. |
-| **Calendário** | Mês atual com navegação, hoje destacado, semana do ano e dia do ano. Com o link iCal da sua agenda (Google Agenda, Nextcloud, Outlook…), mostra pontinhos nos dias com compromissos e a agenda do dia que você tocar, incluindo eventos que se repetem. |
-| **Dispositivos** | Bateria do notebook e de periféricos que publicam essa informação (UPower/BlueZ). |
-| **Notícias** | Lista de manchetes do Google News Brasil com fonte e horário, tema configurável (Tecnologia, Esportes, Economia…). |
+| Nome | DREAVON |
+| Subtítulo | System Intelligence |
+| Cores | preto, grafite, azul elétrico e prata |
+| Símbolo | olho de dragão dentro de uma moldura de runa |
+| Personalidade | guardião silencioso |
+| Interface | modo escuro futurista, com detalhes de fantasia |
 
-**Layout editável.** Clique em **✎ Editar** ao lado do logo, no topo do widget (ou clique direito → **Editar layout**) e reorganize na mão: arraste os cartões pelo nome para outra posição ou coluna, oculte o que não usa (e traga de volta pela barra), puxe as divisões entre as colunas para mudar a largura e use **Restaurar padrão** se quiser recomeçar. O arranjo fica salvo. Nos tamanhos médio e estreito a edição usa setas ▲ ▼ para mudar a ordem dos cartões.
+## O que vem da base (Plasdria)
 
-O layout se adapta ao espaço: em telas largas, o **painel geral** fica em cima e os cartões e o chat embaixo, preenchendo todo o espaço; em tamanho médio (ou quando a altura é curta), painel e cartões rolam à esquerda, em uma ou duas colunas conforme a largura, com o chat ao lado; quando estreito (como no painel do Plasma), há abas **Painel** / **Chat**.
+Estas são as funções da base Linux que o DREAVON pretende ter no Windows. Nenhuma delas está pronta no Windows ainda.
 
-<img src="docs/screenshot-narrow.png" width="260" alt="Plasdria em modo estreito, com abas" />
+| Recurso | Na base Linux | Previsão para o Windows |
+| --- | --- | --- |
+| Painel geral | relógio, saudação, clima resumido e visão do dia | reaproveitar a interface QML |
+| Chat multi-IA | Antigravity, Claude, Codex, Gemini CLI, Ollama e APIs compatíveis com OpenAI | portar a chamada dos CLIs e testar no PATH do Windows |
+| Música | MPRIS (D-Bus) | SMTC, o controle de mídia do Windows |
+| Rede | `/proc/net/dev` e NetworkManager | IP Helper e WLAN API |
+| Sistema | CPU, GPU, RAM, disco, temperaturas e bateria via `/proc` e `/sys` | PDH, `GlobalMemoryStatusEx` e API de energia do Windows |
+| Lembretes com alarme | notificação do sistema | notificação toast do Windows |
+| Calendário, clima e notícias | iCal, Open-Meteo e Google News | já dependem só de rede, devem portar com pouco ajuste |
 
-## Configurações
+O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.md`](docs/windows-port.md).
 
-Clique com o botão direito no widget → **Configurar Plasdria…**
+## Roadmap
 
-- **Geral** — seu nome para a saudação, links iCal da agenda (um por linha), cidade (busca por nome) ou detecção automática, IA padrão (Antigravity, Claude, Codex, Gemini CLI, Ollama ou API Compatível), modelo e esforço padrão, endpoint/chave para API compatível e tema das notícias.
-- **Cartões** — escolha quais cartões aparecem (a posição de cada um se edita no próprio widget).
-- **Aparência** — cor de destaque, opacidade do fundo e animações.
-- **Atalhos de teclado** — defina um atalho global para abrir o chat (página padrão do Plasma).
+- [x] Repositório próprio, com o histórico e os créditos do Plasdria
+- [x] Plano da adaptação e convenção de branches
+- [ ] **1.** Compilar o núcleo no Windows (CMake, Qt 6, MSVC) isolando o código exclusivo de Linux
+- [ ] **2.** Casca própria em janela Qt Quick, sem Plasma
+- [ ] **3.** Partes portáveis: clima, notícias, lembretes, calendário e chat
+- [ ] **4.** Sistema: CPU, RAM, disco e bateria; depois temperaturas e GPU
+- [ ] **5.** Rede: tráfego, IP e sinal do Wi-Fi
+- [ ] **6.** Música via SMTC
+- [ ] **7.** Notificações, atalho global, bandeja do sistema e instalador
+- [ ] Identidade final: ícone do aplicativo e telas
 
-## Instalação
-
-Requer Linux com **KDE Plasma 6**, compilador C++, Qt 6 (Base e Declarative), qmake, Make, Python 3 e `kpackagetool6`. Desenvolvido no CachyOS.
-
-No CachyOS / Arch Linux:
-
-```bash
-sudo pacman -S --needed gcc make python qt6-base qt6-declarative kpackage
-```
-
-Para conversar, instale o [Claude Code](https://docs.claude.com/en/docs/claude-code) e entre com sua conta (assinatura Claude ou chave de API). Se ainda não estiver autenticado, rode `claude` e use `/login`.
-
-Na pasta do projeto:
-
-```bash
-./install.sh
-```
-
-Depois procure **Plasdria** em **Adicionar widgets**. Ao atualizar uma instalação existente, recarregue o Plasma:
-
-```bash
-systemctl --user restart plasma-plasmashell.service
-```
-
-Para desinstalar:
-
-```bash
-kpackagetool6 -t Plasma/Applet -r local.plasdria
-```
-
-## Desenvolvimento
-
-O projeto já vem configurado para o **VS Code** (`.vscode/`): abra a pasta e use **Terminal → Executar Tarefa…**
-
-| Tarefa | O que faz |
-| --- | --- |
-| Compilar | Gera o plugin nativo e o pacote `plasdria.plasmoid` |
-| Instalar no Plasma | Compila e instala/atualiza o widget |
-| Testes | Compila e roda os testes (sem chamadas reais ao Claude) |
-| Prévia (capturas) | Renderiza o widget fora do Plasma e salva PNGs em `build/preview/` |
-
-Pela linha de comando: `./build.sh`, `./install.sh`, `bash tests/run.sh` e `qml6 tools/preview.qml -- <pasta> [--sem-rede]`.
-
-## Como funciona
+## Tecnologias
 
 | Camada | Tecnologias |
 | --- | --- |
-| Interface | QML / Qt Quick, Kirigami (ícones e página de configurações) |
-| Núcleo | C++17, Qt Core, Network, D-Bus e Concurrent |
-| Assistente | Antigravity (`agy`), Claude Code (`claude`), Codex (`codex`), Gemini CLI (`gemini`), Ollama (`/api/chat`) e APIs compatíveis com OpenAI (`/v1/chat/completions`) |
-| Música | MPRIS via D-Bus |
-| Rede | `/proc/net/dev`, NetworkManager via D-Bus |
-| Sistema e baterias | `/proc`, `/sys` (hwmon), UPower e BlueZ; `nvidia-smi` quando disponível |
-| Clima e cidades | Open-Meteo (atual, por hora, 7 dias e geocodificação) |
-| Notícias | RSS do Google News Brasil |
-
-## Dados e privacidade
-
-- O widget usa o login de cada CLI (Antigravity, Claude Code, Codex, Gemini CLI); não há chaves de API no código. Só a **API Compatível** usa uma chave, que você informa nas configurações: ela fica no arquivo de configuração do Plasma, na sua conta de usuário, e é enviada apenas ao endereço que você definir (prefira `https://`).
-- As conversas ficam nos próprios CLIs (por exemplo `~/.claude/projects` e `~/.gemini/antigravity-cli`). O Plasdria guarda só o estado de recuperação em `~/.local/share/plasdria/chat-state.json`, privado do usuário.
-- **Perguntas, anexos e contexto enviados são processados pela IA escolhida** (e, ao trocar de IA no meio da conversa, o histórico na tela é reenviado como contexto para a nova). Com o Claude, o widget roda sem plugins, hooks ou servidores MCP do usuário e só libera ferramentas de leitura e busca (`Read`, `Glob`, `Grep`, `WebSearch`, `WebFetch`); nos demais, pedidos de permissão extra são recusados e o widget não usa opções que aprovam tudo automaticamente. O Ollama roda localmente.
-- A última música tocada fica em `~/.local/share/plasdria/media.json` e as capas em `~/.cache/plasdria/art` (no máximo 150).
-- A agenda é baixada dos links iCal que você configurar (somente leitura). Esse link costuma ser secreto: fica no arquivo de configuração do Plasma, na sua conta, e é usado apenas para baixar a agenda. Sem internet, o Plasdria continua mostrando o que já baixou até fechar.
-- Os alarmes dos lembretes funcionam localmente, sem rede.
-- Clima, cidades e notícias fazem consultas HTTPS. Com a cidade definida nas configurações, a localização por IP não é consultada.
-- A latência é medida abrindo uma conexão com `www.google.com:443` a cada 20 segundos.
+| Interface | QML / Qt Quick |
+| Núcleo | C++17, Qt 6 (Core, Qml, Network, Gui, Concurrent) |
+| Alvo | Windows 10/11, MSVC e CMake (a confirmar) |
+| Origem | KDE Plasma 6, Kirigami, D-Bus (a substituir no Windows) |
 
 ## Estrutura
 
 ```text
-native/        Núcleo C++: Claude, clima/sistema, música (MPRIS) e rede
-package/       Pacote do Plasma: metadados, configurações e interface QML
-  contents/config/   Esquema e páginas de configuração
-  contents/ui/       Cartões, chat, layout e recursos visuais
-images/        Logos e ícones originais
-docs/          Banner e capturas do README
-tests/         Testes do chat (Claude simulado) e da música (player simulado no D-Bus)
-tools/         Prévia/capturas fora do Plasma
+native/        Núcleo C++ (chat, clima, sistema, música e rede)
+package/       Interface QML e configurações (formato de plasmoide da base)
+docs/          Plano do port, notas de desenvolvimento e identidade visual
+  brand/       Logo, marca e banner do DREAVON
+images/        Logos e ícones originais da base
+tests/         Testes herdados (chat simulado e música simulada)
+tools/         Prévia da interface fora do Plasma
 ```
 
-## Licença
+## Executar a base Linux
 
-[MIT](LICENSE). Parte do núcleo (clima, sistema e histórico) vem do [PRAGUS](https://github.com/gustavoprad0/PRAGUS), também MIT. Projeto independente, sem afiliação com a Anthropic, o KDE ou os provedores de dados.
+Enquanto o port não termina, a base ainda pode ser compilada em Linux com KDE Plasma 6, como no Plasdria: veja o [README original](https://github.com/PietroAlexandria/Plasdria#instalação). Os scripts `build.sh` e `install.sh` e o identificador do pacote (`local.plasdria`) ainda são os da base e serão trocados.
 
-## Baseado no Plasdria
+## Contribuindo
 
-O DREAVON é derivado do [Plasdria](https://github.com/PietroAlexandria/Plasdria) (© Pietro Alexandria, MIT), que por sua vez inclui código do [PRAGUS](https://github.com/gustavoprad0/PRAGUS) (MIT). Os avisos de copyright originais foram mantidos no [LICENSE](LICENSE).
+Cada etapa do roadmap é uma branch, com Pull Request e *squash merge*. As regras estão em [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+## Créditos e licença
+
+[MIT](LICENSE). O DREAVON é uma adaptação do [Plasdria](https://github.com/PietroAlexandria/Plasdria) (© Pietro Alexandria, MIT), que inclui código do [PRAGUS](https://github.com/gustavoprad0/PRAGUS) (MIT). Os avisos de copyright originais foram mantidos. Projeto independente, sem afiliação com a Anthropic, a Microsoft, o KDE ou os provedores de dados.
