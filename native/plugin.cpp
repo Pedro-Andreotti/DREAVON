@@ -17,6 +17,9 @@
 #include "mediaclient.h"
 #include "networkclient.h"
 #include "credentialstore.h"
+#ifdef Q_OS_WIN
+#include <qt_windows.h>   // CREATE_NEW_CONSOLE e STARTUPINFO, para abrir o CLI numa janela de console
+#endif
 
 class Messages : public QAbstractListModel {
     Q_OBJECT
@@ -420,8 +423,44 @@ public:
             if (!m_thread.isEmpty()) args << "--resume" << m_thread;
         }
         if(!prompt.isEmpty()) {QGuiApplication::clipboard()->setText(prompt);m_status="Comando copiado: cole no CLI";emit changed();}
+#ifdef Q_OS_WIN
+        openWindowsTerminal(args.mid(3));   // sem "--workdir <pasta> -e", que são do Konsole
+#else
         if(!QProcess::startDetached("konsole",args)) fail("Não foi possível abrir o CLI no Konsole.");
+#endif
     }
+#ifdef Q_OS_WIN
+    // Abre o CLI (programa + argumentos) num terminal: Windows Terminal se existir; senão, uma nova
+    // janela de console com o próprio CLI, sem shell no meio (nada passa pelo cmd.exe ou PowerShell).
+    void openWindowsTerminal(const QStringList &cli) {
+        const QStringList command = windowsLaunch(cli.value(0)) + cli.mid(1);
+        if (isBatchFile(command.value(0)) && !batchArgumentsSafe(cli.mid(1))) {
+            fail("Por segurança, o DREAVON não abriu o CLI: ele só pode ser chamado por um arquivo .cmd/.bat e um argumento tem caractere especial do cmd.exe.");
+            return;
+        }
+        const QString cwd = QDir::toNativeSeparators(workspace());
+        const QString wt = QStandardPaths::findExecutable("wt");
+        if (!wt.isEmpty()) {
+            // wt.exe -d <pasta> <programa> <args>; o ";" separa abas no wt e precisa de escape.
+            QStringList wtArgs = {"-d", cwd};
+            for (QString part : command) wtArgs << part.replace(';', "\\;");
+            if (QProcess::startDetached(wt, wtArgs, cwd)) return;
+        }
+        QProcess console;
+        console.setProgram(command.value(0));
+        console.setArguments(command.mid(1));
+        console.setWorkingDirectory(workspace());
+        console.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *a) {
+            a->flags &= ~DWORD(CREATE_NO_WINDOW);   // o Qt usa para filhos de apps sem console
+            a->flags |= CREATE_NEW_CONSOLE;         // janela de console própria
+            // Sem herdar stdin/stdout do DREAVON: o CLI lê e escreve na própria janela.
+            a->startupInfo->dwFlags &= ~DWORD(STARTF_USESTDHANDLES);
+            a->inheritHandles = false;
+        });
+        if (console.startDetached()) return;
+        fail("Não foi possível abrir um terminal para o CLI (nem o Windows Terminal nem uma janela de console).");
+    }
+#endif
     bool ready() const { return m_initialized && m_authenticated && !m_models.isEmpty(); }
     bool busy() const { return m_busy; }
     QString status() const { return m_status; }
