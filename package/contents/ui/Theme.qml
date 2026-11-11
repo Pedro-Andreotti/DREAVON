@@ -2,7 +2,7 @@ import QtQuick
 
 // Paleta e medidas compartilhadas por todos os cartões.
 QtObject {
-    property color accent: "#3daee9"
+    property color accent: "#2f8bff"
     property real backgroundOpacity: 0.94
     property bool animations: true
 

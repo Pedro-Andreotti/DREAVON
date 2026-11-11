@@ -14,7 +14,7 @@ Um widget de desktop para **Windows** com chat multi-IA, música, rede, lembrete
 
 </div>
 
-> **Em desenvolvimento.** O DREAVON ainda não roda no Windows. O código atual é a base herdada do [Plasdria](https://github.com/PietroAlexandria/Plasdria), um widget para KDE Plasma (Linux), e está sendo adaptado em etapas. Acompanhe o andamento no [roadmap](#roadmap).
+> **Em desenvolvimento.** O DREAVON já abre no Windows numa janela própria, com o painel geral, o chat, o clima, as notícias, os lembretes e o calendário. Sistema, rede e música ainda dependem do Linux. O código vem do [Plasdria](https://github.com/PietroAlexandria/Plasdria), um widget para KDE Plasma (Linux), e está sendo adaptado em etapas. Acompanhe o andamento no [roadmap](#roadmap).
 
 ## O que é o DREAVON
 
@@ -33,7 +33,7 @@ A identidade segue o mesmo espírito:
 
 ## O que vem da base (Plasdria)
 
-Estas são as funções da base Linux que o DREAVON pretende ter no Windows. Nenhuma delas está pronta no Windows ainda.
+Estas são as funções da base Linux que o DREAVON pretende ter no Windows. O painel geral, o clima, as notícias, o calendário e o chat (testado com o Claude) já funcionam na janela do Windows; o resto segue o roadmap.
 
 | Recurso | Na base Linux | Previsão para o Windows |
 | --- | --- | --- |
@@ -47,7 +47,7 @@ Estas são as funções da base Linux que o DREAVON pretende ter no Windows. Nen
 
 O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.md`](docs/windows-port.md).
 
-**Compilar o núcleo no Windows** (Qt 6, MSVC, CMake e Ninja instalados): `.\build-windows.ps1`. O resultado é `package\contents\ui\bridge\plasdriaplugin.dll`.
+**Compilar e abrir no Windows** (Qt 6, MSVC, CMake e Ninja instalados): `.\build-windows.ps1 -Run`. Sem `-Run`, só compila o núcleo (`package\contents\ui\bridge\dreavonplugin.dll`). Detalhes em [`docs/diario/02-casca-windows.md`](docs/diario/02-casca-windows.md).
 
 ## Roadmap
 
@@ -78,7 +78,8 @@ native/        Núcleo C++ (chat, clima, sistema, música e rede)
 package/       Interface QML e configurações (formato de plasmoide da base)
 docs/          Plano do port, notas de desenvolvimento e identidade visual
   brand/       Logo, marca e banner do DREAVON
-images/        Logos e ícones originais da base
+app/           Inicializador nativo (dreavon.exe), para o futuro instalador
+windows/       Ponto de entrada no Windows e substituto mínimo do Kirigami
 tests/         Testes herdados (chat simulado e música simulada)
 tools/         Prévia da interface fora do Plasma
 ```

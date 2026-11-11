@@ -1,0 +1,9 @@
+module org.kde.kirigami
+# Substituto mínimo do Kirigami, só para o Windows (o Linux usa o Kirigami de verdade).
+# Cobre apenas o que o DREAVON usa: Icon, Separator, FormLayout, FormData, Units e Theme.
+plugin kirigamishim
+Icon 2.0 Icon.qml
+Separator 2.0 Separator.qml
+FormLayout 2.0 FormLayout.qml
+singleton Units 2.0 Units.qml
+singleton Theme 2.0 Theme.qml

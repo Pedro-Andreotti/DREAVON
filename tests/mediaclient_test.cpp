@@ -62,7 +62,7 @@ private slots:
         QVERIFY(QDBusConnection::sessionBus().isConnected());
         qputenv("XDG_DATA_HOME", (m_home.path() + "/data").toUtf8());
         qputenv("XDG_CACHE_HOME", (m_home.path() + "/cache").toUtf8());
-        qputenv("PLASDRIA_SPOTIFY_COMMAND", "true");   // "abrir o Spotify" não faz nada no teste
+        qputenv("DREAVON_SPOTIFY_COMMAND", "true");   // "abrir o Spotify" não faz nada no teste
         m_art = m_home.path() + "/capa.png";
         QImage image(8, 8, QImage::Format_RGB32); image.fill(Qt::green);
         QVERIFY(image.save(m_art));
@@ -79,7 +79,7 @@ private slots:
         QCOMPARE(client.volume(), 0.8);
         QCOMPARE(client.loopStatus(), QString("None"));
         // A capa vira uma cópia local, que sobrevive ao arquivo original.
-        QTRY_VERIFY(client.artUrl().isLocalFile() && client.artUrl().toLocalFile().contains("/cache/plasdria/art/"));
+        QTRY_VERIFY(client.artUrl().isLocalFile() && client.artUrl().toLocalFile().contains("/cache/dreavon/art/"));
 
         m_player.status = "Paused";
         QTest::qWait(1700);

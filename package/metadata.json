@@ -1,13 +1,13 @@
 {
   "KPlugin": {
-    "Id": "local.plasdria",
-    "Name": "Plasdria",
+    "Id": "local.dreavon",
+    "Name": "DREAVON",
     "Description": "Chat com Antigravity, Claude e outras IAs, música, rede, lembretes, clima e sistema em um painel.",
-    "Icon": "plasdria",
+    "Icon": "dreavon",
     "Category": "Online Services",
-    "Version": "2.0.0",
+    "Version": "0.1.0",
     "License": "MIT",
-    "Authors": [{"Name": "Projeto pessoal"}]
+    "Authors": [{"Name": "Pedro Andreotti"}]
   },
   "KPackageStructure": "Plasma/Applet",
   "X-Plasma-API-Minimum-Version": "6.0"

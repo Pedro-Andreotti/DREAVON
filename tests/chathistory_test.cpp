@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
     agyTranscript.write("{\"step_index\":1,\"type\":\"PLANNER_RESPONSE\",\"status\":\"DONE\",\"content\":\"Olá! Como posso ajudar?\"}\n");
     agyTranscript.close();
 
-    const auto agySummary = ChatHistory::antigravitySessionSummary(agyTranscriptPath, "/tmp/plasdria");
+    const auto agySummary = ChatHistory::antigravitySessionSummary(agyTranscriptPath, "/tmp/dreavon");
     check(agySummary.value("id") == "agy-conv-1", "Antigravity session ID parsed");
     check(agySummary.value("title") == "Conversa Antigravity", "Antigravity annotation title parsed");
     check(agySummary.value("source") == "Pragus", "Antigravity Pragus session source");

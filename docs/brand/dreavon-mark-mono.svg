@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="DREAVON — marca monocromática"><title>DREAVON — marca monocromática</title>
+<!-- Versão de uma cor da marca (para máscaras e ícones simbólicos); a pupila é vazada. -->
+<g transform="scale(2)">
+  <g fill="none" stroke="#ffffff" stroke-linejoin="miter">
+    <path d="M64,3 L99,15 L121,45 V83 L99,113 L64,125 L29,113 L7,83 V45 L29,15 Z" stroke-width="6"/>
+    <path d="M14,64 Q64,20 114,64 Q64,108 14,64 Z" stroke-width="6" stroke-linejoin="round"/>
+  </g>
+  <path fill="#ffffff" fill-rule="evenodd" d="M44,64 A20,20 0 1,0 84,64 A20,20 0 1,0 44,64 Z M64,42 Q71,64 64,86 Q57,64 64,42 Z"/>
+</g>
+</svg>

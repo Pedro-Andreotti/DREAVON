@@ -128,7 +128,7 @@ void DashboardClient::notify(const QString &title, const QString &body) {
 #ifdef QT_DBUS_LIB
     auto message = QDBusMessage::createMethodCall("org.freedesktop.Notifications", "/org/freedesktop/Notifications",
                                                   "org.freedesktop.Notifications", "Notify");
-    message << QStringLiteral("Plasdria") << uint(0) << QStringLiteral("plasdria") << title << body
+    message << QStringLiteral("DREAVON") << uint(0) << QStringLiteral("dreavon") << title << body
             << QStringList{} << QVariantMap{{"urgency", QVariant::fromValue<uchar>(1)}} << int(15000);
     QDBusConnection::sessionBus().asyncCall(message, 3000);
 #else
@@ -445,7 +445,7 @@ void DashboardClient::requestLocationProvider(int provider) {
 }
 
 void DashboardClient::loadWeatherCache() {
-    QFile file(QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + "/plasdria/weather.json");
+    QFile file(QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + "/dreavon/weather.json");
     if (!file.open(QIODevice::ReadOnly) || file.size() > 1048576) return;
     const auto cached = QJsonDocument::fromJson(file.readAll()).object();
     const auto now = QDateTime::currentSecsSinceEpoch();
@@ -464,7 +464,7 @@ void DashboardClient::loadWeatherCache() {
 }
 
 void DashboardClient::saveWeatherCache() {
-    const auto folder = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + "/plasdria";
+    const auto folder = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + "/dreavon";
     if (!QDir().mkpath(folder)) return;
     QSaveFile file(folder + "/weather.json");
     if (!file.open(QIODevice::WriteOnly)) return;

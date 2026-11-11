@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="468" height="96" viewBox="0 0 468 96" role="img" aria-label="DREAVON"><title>DREAVON</title>
+<!-- Letreiro do DREAVON (mesmo desenho do banner), para a interface. -->
+<defs><linearGradient id="sv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f7fb"/><stop offset="1" stop-color="#9aa3b2"/></linearGradient></defs>
+<g transform="translate(26.5,12) scale(1.286)" fill="none" stroke="url(#sv)" stroke-width="5.5" stroke-linejoin="miter" stroke-linecap="square">
+<path transform="translate(0,0)" d="M0,0 H20 L34,14 V42 L20,56 H0 Z"/>
+<path transform="translate(48,0)" d="M0,56 V0 H24 L34,10 V22 L24,32 H0 M20,32 L34,56"/>
+<path transform="translate(96,0)" d="M30,0 H0 V56 H30 M0,28 H24"/>
+<path transform="translate(140,0)" d="M0,56 L17,0 L34,56 M7,36 H27"/>
+<path transform="translate(188,0)" d="M0,0 L17,56 L34,0"/>
+<path transform="translate(236,0)" d="M10,0 H24 L34,10 V46 L24,56 H10 L0,46 V10 Z"/>
+<path transform="translate(284,0)" d="M0,56 V0 L34,56 V0"/>
+</g>
+</svg>

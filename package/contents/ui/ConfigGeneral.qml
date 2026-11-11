@@ -2,9 +2,8 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.kcmutils as KCM
 
-KCM.SimpleKCM {
+ConfigPage {
     id: page
     property alias cfg_userName: userName.text
     property alias cfg_autoLocation: autoLocation.checked
@@ -19,6 +18,25 @@ KCM.SimpleKCM {
     property alias cfg_customModel: customModel.text
     property string cfg_newsTopic
     property alias cfg_calendarUrls: calendarUrls.text
+
+    // Cofre de credenciais (Windows). Definidos pela SettingsWindow ao carregar a página.
+    // Sem cofre (outras plataformas), a chave segue no campo cfg_customApiKey, como antes.
+    property var credentials: null
+    property string credentialTarget: ""
+    readonly property bool vaultSupported: !!credentials && credentials.supported
+    property bool keySaved: false
+    function refreshKey() { keySaved = vaultSupported && credentials.exists(credentialTarget) }
+    // Apaga o que foi digitado e não salvo (chamado ao abrir e ao fechar a janela).
+    function resetSecrets() { newApiKey.clear() }
+
+    // Endereço sem https:// (exceto localhost): a chave e as mensagens iriam sem criptografia.
+    function insecureUrl(url) {
+        const s = String(url || "").trim().toLowerCase()
+        if (s === "" || s.startsWith("https://")) return false
+        const m = s.match(/^[a-z][a-z0-9+.-]*:\/\/(\[[^\]]+\]|[^\/:?#]+)/)
+        const host = m ? m[1] : ""
+        return !(host === "localhost" || host === "127.0.0.1" || host === "[::1]")
+    }
 
     property var results: []
     property string searchError: ""
@@ -183,9 +201,55 @@ KCM.SimpleKCM {
             placeholderText: "https://api.openai.com/v1"
             Layout.preferredWidth: Kirigami.Units.gridUnit * 20
         }
+        QQC2.Label {
+            visible: page.cfg_defaultProvider === "custom" && page.insecureUrl(customApiUrl.text)
+            text: "Atenção: este endereço não usa https://. A chave da API e as mensagens seriam enviadas sem criptografia."
+            color: Kirigami.Theme.negativeTextColor
+            wrapMode: Text.Wrap
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 20
+        }
+        // Windows: a chave fica no Gerenciador de Credenciais; o campo nunca mostra a chave salva.
+        ColumnLayout {
+            visible: page.cfg_defaultProvider === "custom" && page.vaultSupported
+            Kirigami.FormData.label: "Chave da API:"
+            spacing: 6
+            QQC2.Label {
+                text: page.keySaved ? "•••••••• salva no Gerenciador de Credenciais do Windows" : "Nenhuma chave salva"
+                opacity: 0.8
+            }
+            RowLayout {
+                QQC2.TextField {
+                    id: newApiKey
+                    placeholderText: page.keySaved ? "Nova chave, para substituir a atual" : "sk-... (ou defina OPENAI_API_KEY)"
+                    echoMode: TextInput.Password
+                    Layout.preferredWidth: Kirigami.Units.gridUnit * 13
+                }
+                QQC2.Button {
+                    text: page.keySaved ? "Alterar" : "Salvar"
+                    enabled: newApiKey.text.trim() !== ""
+                    onClicked: {
+                        if (page.credentials.set(page.credentialTarget, newApiKey.text)) newApiKey.clear()
+                        page.refreshKey()
+                    }
+                }
+                QQC2.Button {
+                    text: "Remover"
+                    visible: page.keySaved
+                    onClicked: { page.credentials.remove(page.credentialTarget); page.refreshKey() }
+                }
+            }
+            QQC2.Label {
+                visible: page.vaultSupported && page.credentials.lastError !== ""
+                text: "Não foi possível acessar o cofre: " + (page.credentials ? page.credentials.lastError : "")
+                color: Kirigami.Theme.negativeTextColor
+                wrapMode: Text.Wrap
+                Layout.preferredWidth: Kirigami.Units.gridUnit * 20
+            }
+        }
+        // Outras plataformas (sem cofre): campo mascarado salvo nas configurações, como antes.
         QQC2.TextField {
             id: customApiKey
-            visible: page.cfg_defaultProvider === "custom"
+            visible: page.cfg_defaultProvider === "custom" && !page.vaultSupported
             Kirigami.FormData.label: "Chave da API:"
             placeholderText: "sk-... (ou defina OPENAI_API_KEY)"
             echoMode: TextInput.Password
