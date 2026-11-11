@@ -17,7 +17,7 @@ Levantamento do código atual (`package/contents/ui`):
 | `Plasmoid.configuration` (24 chaves em `config/main.xml`) | `main.qml` | trocar por um objeto de configuração salvo em arquivo |
 | `Plasmoid.contextualActions` (4 ações do menu) | `main.qml` | virar menu de contexto da janela e da bandeja |
 | `org.kde.kcmutils` (`SimpleKCM`) | `ConfigGeneral`, `ConfigAppearance`, `ConfigCards` | trocar por uma janela de configurações própria |
-| `org.kde.kirigami` | 17 arquivos, em geral só ícones | decidir (ver "Decisões") |
+| `org.kde.kirigami` | 17 arquivos, em geral só ícones | mantido neste passo (ver "Decisões") |
 | `Shell.qml` (525 linhas) | já é independente do Plasma | reaproveitar como está |
 
 O `tools/preview.qml` já abre o widget numa `Window` comum com um objeto `cfg` simulado. Ele é o ponto de partida.
