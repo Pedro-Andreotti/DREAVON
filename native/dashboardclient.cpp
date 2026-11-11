@@ -195,8 +195,8 @@ void DashboardClient::updateSystemDetails() {
     QVariantMap d = m_systemDetails;
     d["cpuModel"] = cpuModel;
     d["cores"] = QThread::idealThreadCount();
-    d["cpuTemp"] = -1;    // sem API padrão no Windows: decisão pendente (passo 4)
-    d["diskTemp"] = -1;
+    d["cpuTemp"] = -1;    // sem fonte nativa sem administrador no Windows (decisão do passo 4)
+    d["diskTemp"] = SystemInfoWin::systemDiskTemperature();   // driver de armazenamento, sem administrador
     d["uptime"] = duration(SystemInfoWin::uptimeSeconds());
     d["load"] = QString();   // o Windows não tem "load average": não inventar
     const int processes = SystemInfoWin::processCount();
@@ -326,6 +326,14 @@ void DashboardClient::updateMetrics() {
     }
 #endif
 
+#ifdef Q_OS_WIN
+        // GPU: contadores PDH "GPU Engine" (todas as GPUs, sem abrir processo). O nvidia-smi só entra
+        // se o PDH não responder: ele vê só a NVIDIA e, num notebook, pode manter a GPU dedicada acordada.
+        const double gpu = SystemInfoWin::gpuUsage();
+        if (gpu >= 0) m_gpuUsage = gpu;
+        else if (m_gpuProcess.state() == QProcess::NotRunning && !QStandardPaths::findExecutable(QStringLiteral("nvidia-smi")).isEmpty())
+            m_gpuProcess.start(QStringLiteral("nvidia-smi"), {"--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"});
+#else
         QDir drm(QStringLiteral("/sys/class/drm"));
         for (const auto &card : drm.entryList(QStringList() << "card*", QDir::Dirs | QDir::NoDotAndDotDot)) {
             QFile busy(drm.filePath(card + QStringLiteral("/device/gpu_busy_percent")));
@@ -336,6 +344,7 @@ void DashboardClient::updateMetrics() {
         }
         if (m_gpuProcess.state() == QProcess::NotRunning && QStandardPaths::findExecutable(QStringLiteral("nvidia-smi")).isEmpty() == false)
             m_gpuProcess.start(QStringLiteral("nvidia-smi"), {"--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"});
+#endif
 
         m_usbDevices.clear();
         auto read = [](const QString &path) { QFile f(path); return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()).trimmed() : QString(); };

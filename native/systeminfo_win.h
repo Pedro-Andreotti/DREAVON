@@ -24,6 +24,16 @@ QString cpuModel();            // registro: ProcessorNameString
 QString productName();         // registro: BIOS\SystemProductName (pode ser genérico)
 QString windowsVersion();      // ex.: "compilação 26300.1234" (só a compilação)
 
+// Uso da GPU em % pelos contadores PDH "GPU Engine", como o Gerenciador de Tarefas: soma por
+// adaptador e tipo de mecanismo (3D, cópia, vídeo…) e pega o maior. Vale para qualquer GPU
+// (integrada e dedicada). -1 se os contadores não existirem.
+double gpuUsage();
+
+// Temperatura (°C) do disco que contém o Windows, pela consulta do próprio driver de armazenamento
+// (IOCTL_STORAGE_QUERY_PROPERTY / StorageDeviceTemperatureProperty), sem administrador.
+// Guardada por 10 s para não consultar o disco a cada ciclo. -1 se o disco não informar.
+double systemDiskTemperature();
+
 struct Power {
     bool valid = false;        // GetSystemPowerStatus respondeu
     bool hasBattery = false;   // falso em PC de mesa (BatteryFlag 128)
