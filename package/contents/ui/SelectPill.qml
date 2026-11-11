@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import QtQuick.Controls.Basic as B
 import org.kde.kirigami as Kirigami
 
@@ -14,15 +15,16 @@ Rectangle {
         for (let i = 0; i < options.length; ++i) if (options[i].value === value) return options[i].text
         return value || "—"
     }
-    implicitWidth: row.implicitWidth + 18; implicitHeight: 24
+    implicitWidth: row.implicitWidth + 16; implicitHeight: 24
+    Layout.minimumWidth: 44
     radius: 12
     color: hover.hovered || menu.opened ? t.cardRaised : "transparent"
     border.color: t.border
     opacity: enabled ? 1 : 0.4
-    Row {
-        id: row; anchors.centerIn: parent; spacing: 4
-        Text { text: pill.currentText; color: pill.t.ink; font.pixelSize: 11; font.weight: Font.Medium; anchors.verticalCenter: parent.verticalCenter }
-        Kirigami.Icon { source: "arrow-down"; width: 10; height: 10; isMask: true; color: pill.t.muted; anchors.verticalCenter: parent.verticalCenter }
+    RowLayout {
+        id: row; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; spacing: 4
+        Text { text: pill.currentText; color: pill.t.ink; font.pixelSize: 11; font.weight: Font.Medium; elide: Text.ElideRight; Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.alignment: Qt.AlignVCenter }
+        Kirigami.Icon { source: "arrow-down"; implicitWidth: 10; implicitHeight: 10; isMask: true; color: pill.t.muted; Layout.alignment: Qt.AlignVCenter }
     }
     HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
     TapHandler { onTapped: menu.opened ? menu.close() : menu.open() }

@@ -55,15 +55,16 @@ Rectangle {
                 }
             }
             ColumnLayout {
-                spacing: 0; Layout.fillWidth: true
+                spacing: 0; Layout.fillWidth: true; Layout.minimumWidth: 40
                 Rectangle {
                     id: providerBtn
+                    Layout.maximumWidth: implicitWidth
                     implicitWidth: providerRow.implicitWidth + 10; implicitHeight: 22; radius: 7
                     color: (providerHover.hovered || providerMenu.opened) && !chat.client.busy ? chat.t.cardRaised : "transparent"
-                    Row {
-                        id: providerRow; anchors.verticalCenter: parent.verticalCenter; x: 4; spacing: 5
-                        Text { text: chat.client.providerName; color: chat.t.ink; font.pixelSize: 15; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
-                        Kirigami.Icon { source: "arrow-down"; width: 10; height: 10; isMask: true; color: chat.t.muted; anchors.verticalCenter: parent.verticalCenter }
+                    RowLayout {
+                        id: providerRow; anchors.fill: parent; anchors.leftMargin: 4; anchors.rightMargin: 4; spacing: 5
+                        Text { text: chat.client.providerName; color: chat.t.ink; font.pixelSize: 15; font.weight: Font.DemiBold; elide: Text.ElideRight; Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.alignment: Qt.AlignVCenter }
+                        Kirigami.Icon { source: "arrow-down"; implicitWidth: 10; implicitHeight: 10; isMask: true; color: chat.t.muted; Layout.alignment: Qt.AlignVCenter }
                     }
                     HoverHandler { id: providerHover; cursorShape: chat.client.busy ? Qt.ArrowCursor : Qt.PointingHandCursor }
                     TapHandler { enabled: !chat.client.busy; onTapped: providerMenu.opened ? providerMenu.close() : providerMenu.open() }
@@ -118,23 +119,29 @@ Rectangle {
                     Text { text: chat.client.status + (chat.client.plan ? " · " + chat.client.plan : ""); color: chat.t.muted; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
                 }
             }
-            SelectPill {
-                t: chat.t; tip: "Modelo"
-                enabled: !chat.client.busy && chat.client.models.length > 0
-                options: chat.client.models.map(m => ({value: m.id, text: m.name}))
-                value: chat.client.model
-                onPicked: v => chat.client.model = v
-            }
-            SelectPill {
-                t: chat.t; tip: "Esforço de raciocínio"
-                visible: chat.client.efforts.length > 0
-                enabled: !chat.client.busy
-                options: chat.client.efforts.map(e => ({value: e, text: chat.effortNames[e] || e}))
-                value: chat.client.effort
-                onPicked: v => chat.client.effort = v
-            }
             IconButton { t: chat.t; icon: "view-history"; tip: "Conversas anteriores"; active: history.opened; onClicked: history.opened ? history.close() : history.open() }
             IconButton { t: chat.t; icon: "list-add"; tip: "Nova conversa"; enabled: !chat.client.busy; onClicked: { chat.client.newChat(); input.forceActiveFocus() } }
+        }
+
+        // Modelo e esforço
+        RowLayout {
+            Layout.fillWidth: true; spacing: 6
+            SelectPill {
+                    t: chat.t; tip: "Modelo"
+                    enabled: !chat.client.busy && chat.client.models.length > 0
+                    options: chat.client.models.map(m => ({value: m.id, text: m.name}))
+                    value: chat.client.model
+                    onPicked: v => chat.client.model = v
+                }
+                SelectPill {
+                    t: chat.t; tip: "Esforço de raciocínio"
+                    visible: chat.client.efforts.length > 0
+                    enabled: !chat.client.busy
+                    options: chat.client.efforts.map(e => ({value: e, text: chat.effortNames[e] || e}))
+                    value: chat.client.effort
+                    onPicked: v => chat.client.effort = v
+                }
+            Item { Layout.fillWidth: true }
         }
 
         // Cotas

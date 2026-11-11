@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as B
+import org.kde.kirigami as Kirigami
 
 // Layout principal, com o painel geral (horário, cidade, clima) como base.
 //  largo  (≥ 1100): painel geral em cima; embaixo colunas de cartões EDITÁVEIS; clima no rodapé
@@ -109,6 +110,19 @@ Item {
         for (let i = 1; i < colIds.length; ++i) if (shownIds(i).length < shownIds(best).length) best = i
         moveCard(id, best, 999)
     }
+    // Nos layouts empilhados: troca o cartão de lugar com o vizinho da pilha.
+    function moveInStack(id, delta) {
+        const order = stackOrder
+        const i = order.indexOf(id), j = i + delta
+        if (i < 0 || j < 0 || j >= order.length) return
+        const cols = colIds.map(c => c.slice())
+        const find = x => { for (let c = 0; c < cols.length; ++c) { const k = cols[c].indexOf(x); if (k >= 0) return [c, k] } return null }
+        const a = find(id), b = find(order[j])
+        if (!a || !b) return
+        cols[a[0]][a[1]] = order[j]; cols[b[0]][b[1]] = id
+        colIds = cols
+        persist()
+    }
     function resetLayout() { colIds = defaultCols.map(c => c.slice()); colW = defaultWeights.slice(); hiddenIds = []; persist() }
 
     // Arrasto de um cartão (coordenadas do Shell).
@@ -146,13 +160,26 @@ Item {
         sourceComponent: shell.mode === "wide" ? wideLayout : shell.mode === "medium" ? mediumLayout : narrowLayout
     }
 
-    // Botão de editar (canto do layout largo).
-    IconButton {
-        visible: shell.mode === "wide" && !shell.editing
-        t: shell.t; icon: "document-edit"; size: 22; tip: "Editar layout"
-        anchors.top: parent.top; anchors.right: parent.right; anchors.topMargin: 4; anchors.rightMargin: 4
+    // Lápis de edição: sempre à vista, em qualquer tamanho.
+    Rectangle {
+        id: pencil
+        visible: !shell.editing
         z: 5
-        onClicked: shell.editRequested(true)
+        anchors.top: parent.top; anchors.right: parent.right; anchors.topMargin: 6; anchors.rightMargin: 8
+        height: 28; width: shell.mode === "narrow" ? 28 : pencilRow.implicitWidth + 22; radius: 14
+        color: pencilHover.hovered ? shell.t.accentSoft : Qt.rgba(shell.t.accent.r, shell.t.accent.g, shell.t.accent.b, 0.08)
+        border.color: pencilHover.hovered ? shell.t.accent : shell.t.accentLine
+        Behavior on color { ColorAnimation { duration: shell.t.duration } }
+        Row {
+            id: pencilRow
+            anchors.centerIn: parent; spacing: 6
+            Kirigami.Icon { source: "document-edit"; width: 15; height: 15; isMask: true; color: shell.t.accent; anchors.verticalCenter: parent.verticalCenter }
+            Text { visible: shell.mode !== "narrow"; text: "Editar layout"; color: shell.t.accent; font.pixelSize: 11; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+        }
+        HoverHandler { id: pencilHover; cursorShape: Qt.PointingHandCursor }
+        TapHandler { onTapped: shell.editRequested(true) }
+        B.ToolTip.visible: pencilHover.hovered && shell.mode === "narrow"
+        B.ToolTip.text: "Editar layout"
     }
 
     // Cartão sendo arrastado.
@@ -189,6 +216,50 @@ Item {
         return null
     }
 
+    component Chip: Rectangle {
+        id: chip
+        property string text
+        property bool solid: false
+        property bool muted: false
+        signal clicked()
+        implicitHeight: 26; implicitWidth: chipLabel.implicitWidth + 22; radius: 13
+        color: solid ? shell.t.accent : chipHover.hovered ? shell.t.cardRaised : "transparent"
+        border.color: solid ? "transparent" : muted ? shell.t.border : shell.t.accentLine
+        Text { id: chipLabel; anchors.centerIn: parent; text: chip.text; font.pixelSize: 11; font.weight: chip.muted ? Font.Normal : Font.DemiBold
+            color: chip.solid ? "#101119" : chip.muted ? shell.t.muted : shell.t.accent }
+        HoverHandler { id: chipHover; cursorShape: Qt.PointingHandCursor }
+        TapHandler { onTapped: chip.clicked() }
+    }
+
+    // Barra do modo de edição: dica, cartões ocultos (para trazer de volta), restaurar e concluir.
+    component EditBar: Rectangle {
+        id: eb
+        property bool compact: false
+        readonly property string hint: compact ? "Editando · use ▲ ▼ para mover e o olho para ocultar" : "Editando · arraste os cartões pelo nome e puxe as divisões entre as colunas"
+        radius: compact ? 14 : 16; color: shell.t.accentSoft; border.color: shell.t.accentLine
+        implicitHeight: compact ? stackBar.implicitHeight + 16 : 32
+        RowLayout {
+            visible: !eb.compact
+            anchors.fill: parent; anchors.leftMargin: 14; anchors.rightMargin: 3; spacing: 6
+            Text { text: eb.hint; color: shell.t.ink; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true; Layout.minimumWidth: 80 }
+            Repeater { model: shell.hiddenEnabled; delegate: Chip { required property string modelData; text: "＋ " + (shell.names[modelData] || modelData); onClicked: shell.showCard(modelData) } }
+            Chip { text: "Restaurar padrão"; muted: true; onClicked: shell.resetLayout() }
+            Chip { text: "Concluir"; solid: true; onClicked: shell.editRequested(false) }
+        }
+        ColumnLayout {
+            id: stackBar
+            visible: eb.compact
+            anchors.fill: parent; anchors.margins: 8; spacing: 6
+            Text { text: eb.hint; color: shell.t.ink; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Flow {
+                Layout.fillWidth: true; spacing: 6
+                Repeater { model: shell.hiddenEnabled; delegate: Chip { required property string modelData; text: "＋ " + (shell.names[modelData] || modelData); onClicked: shell.showCard(modelData) } }
+                Chip { text: "Restaurar padrão"; muted: true; onClicked: shell.resetLayout() }
+                Chip { text: "Concluir"; solid: true; onClicked: shell.editRequested(false) }
+            }
+        }
+    }
+
     // Um cartão dentro de uma coluna (ou da pilha), com a camada de edição por cima.
     component Slot: Loader {
         id: slot
@@ -208,16 +279,16 @@ Item {
         Item {
             id: overlay
             anchors.fill: parent
-            visible: shell.editing && !slot.stacked
+            visible: shell.editing
             z: 10
             opacity: shell.dragId === slot.cardId ? 0.35 : 1
             Rectangle { anchors.fill: parent; radius: shell.t.radius; color: Qt.rgba(shell.t.accent.r, shell.t.accent.g, shell.t.accent.b, 0.10); border.color: shell.t.accentLine; border.width: 2 }
             MouseArea {
                 anchors.fill: parent
-                cursorShape: Qt.SizeAllCursor
+                cursorShape: slot.stacked ? Qt.ArrowCursor : Qt.SizeAllCursor
                 acceptedButtons: Qt.LeftButton
-                onPressed: mouse => { const p = mapToItem(shell, mouse.x, mouse.y); shell.dragX = p.x; shell.dragY = p.y; shell.dragId = slot.cardId }
-                onPositionChanged: mouse => { if (!pressed) return; const p = mapToItem(shell, mouse.x, mouse.y); shell.dragX = p.x; shell.dragY = p.y }
+                onPressed: mouse => { if (slot.stacked) return; const p = mapToItem(shell, mouse.x, mouse.y); shell.dragX = p.x; shell.dragY = p.y; shell.dragId = slot.cardId }
+                onPositionChanged: mouse => { if (!pressed || slot.stacked) return; const p = mapToItem(shell, mouse.x, mouse.y); shell.dragX = p.x; shell.dragY = p.y }
                 onReleased: shell.dragFinished()
                 onCanceled: shell.dragFinished()
             }
@@ -231,11 +302,11 @@ Item {
                     Text { id: label; text: shell.names[slot.cardId] || ""; color: shell.t.ink; font.pixelSize: 12; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
                 }
             }
-            IconButton {
-                visible: slot.cardId !== "chat"
-                t: shell.t; icon: "view-hidden"; size: 24; tip: "Ocultar este cartão"
-                anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 6
-                onClicked: shell.hideCard(slot.cardId)
+            Row {
+                anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 6; spacing: 4
+                IconButton { visible: slot.stacked; t: shell.t; icon: "go-up"; size: 26; tip: "Mover para cima"; onClicked: shell.moveInStack(slot.cardId, -1) }
+                IconButton { visible: slot.stacked; t: shell.t; icon: "go-down"; size: 26; tip: "Mover para baixo"; onClicked: shell.moveInStack(slot.cardId, 1) }
+                IconButton { visible: slot.cardId !== "chat"; t: shell.t; icon: "view-hidden"; size: 26; tip: "Ocultar este cartão"; onClicked: shell.hideCard(slot.cardId) }
             }
         }
     }
@@ -248,6 +319,7 @@ Item {
     // Cartões reutilizados nos layouts empilhados (médio e estreito), na ordem escolhida.
     component CardStack: ColumnLayout {
         spacing: shell.t.gap
+        EditBar { visible: shell.editing; compact: true; Layout.fillWidth: true }
         Repeater {
             model: shell.stackOrder
             delegate: Slot { required property string modelData; cardId: modelData; stacked: true }
@@ -275,42 +347,12 @@ Item {
             // Barra do modo de edição.
             property real barHeight: shell.editing ? 42 : 0
             Behavior on barHeight { NumberAnimation { duration: shell.t.animations ? 160 : 0; easing.type: Easing.OutCubic } }
-            Rectangle {
+            EditBar {
                 id: bar
                 visible: wide.barHeight > 1
                 y: hero.height + shell.t.gap
-                width: parent.width; height: 32; radius: 16
-                color: shell.t.accentSoft; border.color: shell.t.accentLine
+                width: parent.width
                 opacity: Math.min(1, wide.barHeight / 42)
-                RowLayout {
-                    anchors.fill: parent; anchors.leftMargin: 14; anchors.rightMargin: 4; spacing: 8
-                    Text { text: "Editando · arraste os cartões e puxe as divisões entre colunas"; color: shell.t.ink; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true; Layout.minimumWidth: 80 }
-                    Repeater {
-                        model: shell.hiddenEnabled
-                        delegate: Rectangle {
-                            required property string modelData
-                            Layout.preferredHeight: 24; Layout.preferredWidth: chipText.implicitWidth + 20; radius: 12
-                            color: chipHover.hovered ? shell.t.cardRaised : "transparent"; border.color: shell.t.accentLine
-                            Text { id: chipText; anchors.centerIn: parent; text: "＋ " + (shell.names[modelData] || modelData); color: shell.t.accent; font.pixelSize: 11; font.weight: Font.DemiBold }
-                            HoverHandler { id: chipHover; cursorShape: Qt.PointingHandCursor }
-                            TapHandler { onTapped: shell.showCard(modelData) }
-                        }
-                    }
-                    Rectangle {
-                        Layout.preferredHeight: 24; Layout.preferredWidth: resetText.implicitWidth + 20; radius: 12
-                        color: resetHover.hovered ? shell.t.cardRaised : "transparent"; border.color: shell.t.border
-                        Text { id: resetText; anchors.centerIn: parent; text: "Restaurar padrão"; color: shell.t.muted; font.pixelSize: 11 }
-                        HoverHandler { id: resetHover; cursorShape: Qt.PointingHandCursor }
-                        TapHandler { onTapped: shell.resetLayout() }
-                    }
-                    Rectangle {
-                        Layout.preferredHeight: 24; Layout.preferredWidth: doneText.implicitWidth + 24; radius: 12
-                        color: shell.t.accent
-                        Text { id: doneText; anchors.centerIn: parent; text: "Concluir"; color: "#101119"; font.pixelSize: 11; font.weight: Font.Bold }
-                        HoverHandler { cursorShape: Qt.PointingHandCursor }
-                        TapHandler { onTapped: shell.editRequested(false) }
-                    }
-                }
             }
 
             // Colunas.
