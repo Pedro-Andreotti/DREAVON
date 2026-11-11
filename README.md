@@ -47,12 +47,14 @@ Estas são as funções da base Linux que o DREAVON pretende ter no Windows. Nen
 
 O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.md`](docs/windows-port.md).
 
+**Compilar o núcleo no Windows** (Qt 6, MSVC, CMake e Ninja instalados): `.\build-windows.ps1`. O resultado é `package\contents\ui\bridge\plasdriaplugin.dll`.
+
 ## Roadmap
 
 - [x] Repositório próprio, com o histórico e os créditos do Plasdria
 - [x] Plano da adaptação e convenção de branches
-- [ ] **1.** Compilar o núcleo no Windows (CMake, Qt 6, MSVC) isolando o código exclusivo de Linux
-- [ ] **2.** Casca própria em janela Qt Quick, sem Plasma
+- [x] **1.** Compilar o núcleo no Windows (CMake, Qt 6, MSVC) isolando o código exclusivo de Linux ([PR #3](https://github.com/Pedro-Andreotti/DREAVON/pull/3))
+- [ ] **2.** Casca própria em janela Qt Quick, sem Plasma ([plano](docs/passo-2-casca.md))
 - [ ] **3.** Partes portáveis: clima, notícias, lembretes, calendário e chat
 - [ ] **4.** Sistema: CPU, RAM, disco e bateria; depois temperaturas e GPU
 - [ ] **5.** Rede: tráfego, IP e sinal do Wi-Fi
