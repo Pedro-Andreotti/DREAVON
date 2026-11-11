@@ -215,7 +215,11 @@ public:
             QVariantMap{{"id", "claude"}, {"name", "Claude"}, {"subtitle", "Claude Code · claude"}, {"available", !claudeBinary().isEmpty()}},
             QVariantMap{{"id", "codex"}, {"name", "Codex"}, {"subtitle", "OpenAI Codex · codex"}, {"available", !codexBinary().isEmpty()}},
             QVariantMap{{"id", "gemini"}, {"name", "Gemini CLI"}, {"subtitle", "Google Gemini · gemini"}, {"available", !geminiBinary().isEmpty()}},
+#ifdef Q_OS_WIN
+            QVariantMap{{"id", "ollama"}, {"name", "Ollama"}, {"subtitle", "Modelos locais · 11434"}, {"available", !findBinary("ollama").isEmpty() || m_provider == "ollama"}},
+#else
             QVariantMap{{"id", "ollama"}, {"name", "Ollama"}, {"subtitle", "Modelos locais · 11434"}, {"available", !QStandardPaths::findExecutable("ollama").isEmpty() || m_provider == "ollama"}},
+#endif
             QVariantMap{{"id", "custom"}, {"name", "API Compatível"}, {"subtitle", "OpenAI / OpenRouter / Local"}, {"available", !m_customApiUrl.isEmpty() || m_provider == "custom"}}
         };
     }
@@ -672,7 +676,37 @@ private:
     QString dataRoot() const { return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/dreavon"; }
     QString pragusWorkspace() const { const QString p=dataRoot()+"/workspace"; QDir().mkpath(p); return p; }
     QString workspace() const { return m_threadCwd.isEmpty() ? pragusWorkspace() : m_threadCwd; }
+#ifdef Q_OS_WIN
+    // Pastas onde os CLIs de IA costumam ficar no Windows, além do PATH:
+    // npm global, Antigravity (instalador oficial: %LOCALAPPDATA%\agy\bin), programas do usuário e ~\.local\bin.
+    static QStringList windowsBinaryDirs() {
+        const QString local = qEnvironmentVariable("LOCALAPPDATA"), roaming = qEnvironmentVariable("APPDATA");
+        QStringList dirs;
+        if (!roaming.isEmpty()) dirs << roaming + "/npm";
+        if (!local.isEmpty()) dirs << local + "/agy/bin" << local + "/Programs";
+        dirs << QDir::homePath() + "/.local/bin";
+        return dirs;
+    }
+#endif
     static QString findBinary(const QString &name, const QStringList &extraPaths = {}) {
+#ifdef Q_OS_WIN
+        // No Windows, .exe antes de .cmd/.bat (os .cmd passam pelo cmd.exe; ver windowsLaunch).
+        // O findExecutable já percorre o PATH com as extensões do PATHEXT.
+        QString binary = QStandardPaths::findExecutable(name);
+        if (!binary.isEmpty() && binary.endsWith(".exe", Qt::CaseInsensitive)) return binary;
+        const QString fromPath = binary;
+        QStringList dirs = windowsBinaryDirs();
+        for (const QString &p : extraPaths) dirs << p;
+        for (const QString &suffix : {QStringLiteral(".exe"), QStringLiteral(".cmd"), QStringLiteral(".bat")}) {
+            for (const QString &dir : dirs) {
+                // Ex.: %LOCALAPPDATA%\Programs\Ollama\ollama.exe
+                for (const QString &p : {dir + "/" + name + suffix, dir + "/" + name + "/" + name + suffix})
+                    if (QFileInfo(p).isFile()) return QDir::cleanPath(p);
+            }
+            if (suffix == ".exe" && !fromPath.isEmpty()) return fromPath;   // .cmd do PATH antes de procurar .cmd fora dele
+        }
+        return fromPath;
+#else
         QString binary = QStandardPaths::findExecutable(name);
         if (!binary.isEmpty()) return binary;
         QStringList paths = extraPaths;
@@ -680,6 +714,7 @@ private:
         paths.append(QDir::homePath() + "/.npm-global/bin/" + name);
         for (const QString &p : paths) if (QFileInfo(p).isExecutable()) return p;
         return {};
+#endif
     }
     QString claudeBinary() const {
         if(!m_executable.isEmpty() && m_provider == "claude") return m_executable;
@@ -713,7 +748,14 @@ private:
     QProcess *newProcess(const QString &binary) {
         auto *process=new QProcess(this);
         auto env=QProcessEnvironment::systemEnvironment();
+#ifdef Q_OS_WIN
+        // Separador ";" do Windows; os CLIs de npm/node também precisam achar o node.exe pelo PATH.
+        QStringList extra;
+        for (const QString &dir : windowsBinaryDirs()) extra << QDir::toNativeSeparators(dir);
+        env.insert("PATH", extra.join(QDir::listSeparator()) + QDir::listSeparator() + env.value("PATH"));
+#else
         env.insert("PATH",QDir::homePath()+"/.local/bin:"+QDir::homePath()+"/.gemini/antigravity/bin:"+env.value("PATH"));
+#endif
         for(const QString &key:{QString("CLAUDECODE"),QString("CLAUDE_CODE_ENTRYPOINT")}) env.remove(key);
         process->setProcessEnvironment(env);
         process->setProgram(binary);
