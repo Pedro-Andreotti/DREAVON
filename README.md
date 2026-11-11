@@ -54,7 +54,7 @@ O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.m
 - [x] Repositório próprio, com o histórico e os créditos do Plasdria
 - [x] Plano da adaptação e convenção de branches
 - [x] **1.** Compilar o núcleo no Windows (CMake, Qt 6, MSVC) isolando o código exclusivo de Linux ([PR #3](https://github.com/Pedro-Andreotti/DREAVON/pull/3))
-- [ ] **2.** Casca própria em janela Qt Quick, sem Plasma ([plano](docs/passo-2-casca.md))
+- [x] **2.** Casca própria em janela Qt Quick, sem Plasma, com bandeja, nome e logo do DREAVON e chave da API no Gerenciador de Credenciais ([plano](docs/passo-2-casca.md), [diário](docs/diario/02-casca-windows.md), [PR #6](https://github.com/Pedro-Andreotti/DREAVON/pull/6))
 - [ ] **3.** Partes portáveis: clima, notícias, lembretes, calendário e chat
 - [ ] **4.** Sistema: CPU, RAM, disco e bateria; depois temperaturas e GPU
 - [ ] **5.** Rede: tráfego, IP e sinal do Wi-Fi
@@ -86,7 +86,7 @@ tools/         Prévia da interface fora do Plasma
 
 ## Executar a base Linux
 
-Enquanto o port não termina, a base ainda pode ser compilada em Linux com KDE Plasma 6, como no Plasdria: veja o [README original](https://github.com/PietroAlexandria/Plasdria#instalação). Os scripts `build.sh` e `install.sh` e o identificador do pacote (`local.plasdria`) ainda são os da base e serão trocados.
+Enquanto o port não termina, a base ainda pode ser compilada em Linux com KDE Plasma 6, como no Plasdria: veja o [README original](https://github.com/PietroAlexandria/Plasdria#instalação). Os scripts `build.sh` e `install.sh` são da base Linux e não foram testados depois da troca de nome (o identificador do pacote agora é `local.dreavon`).
 
 ## Contribuindo
 
@@ -94,4 +94,4 @@ Cada etapa do roadmap é uma branch, com Pull Request e *squash merge*. As regra
 
 ## Créditos e licença
 
-[MIT](LICENSE). O DREAVON é uma adaptação do [Plasdria](https://github.com/PietroAlexandria/Plasdria) (© Pietro Alexandria, MIT), que inclui código do [PRAGUS](https://github.com/gustavoprad0/PRAGUS) (MIT). Os avisos de copyright originais foram mantidos. Projeto independente, sem afiliação com a Anthropic, a Microsoft, o KDE ou os provedores de dados.
+[MIT](LICENSE). O DREAVON é uma adaptação do [Plasdria](https://github.com/PietroAlexandria/Plasdria) (© Pietro Alexandria, MIT), que inclui código do [PRAGUS](https://github.com/gustavoprad0/PRAGUS) (MIT). Os avisos de copyright originais foram mantidos. No Windows, os ícones da interface são um subconjunto do tema [Breeze](https://invent.kde.org/frameworks/breeze-icons) (© Uri Herrera e outros, LGPL-3.0-or-later), em `windows/qml/org/kde/kirigami/icons/`, com o aviso em `COPYING-ICONS`. Projeto independente, sem afiliação com a Anthropic, a Microsoft, o KDE ou os provedores de dados.
