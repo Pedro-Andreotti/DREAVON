@@ -40,9 +40,20 @@ Window {
         }
     }
     Timer { id: waitReply; interval: 500; repeat: true; onTriggered: if (!client.busy) { stop(); win.shots() } }
-    function shots() {
-        shot("wide", () => { win.width = 980; Qt.callLater(() => delay.start()) })
+    // --tamanhos=LxA,LxA,...  (padrão: largo, médio e estreito)
+    readonly property var sizes: {
+        const a = win.args.filter(x => x.startsWith("--tamanhos="))
+        const list = a.length ? a[0].slice(11).split(",") : ["1300x820", "980x820", "430x760"]
+        return list.map(x => x.split("x").map(Number))
     }
-    Timer { id: delay; interval: 800; onTriggered: win.shot("medium", () => { win.width = 430; win.height = 760; delay2.start() }) }
-    Timer { id: delay2; interval: 800; onTriggered: win.shot("narrow", () => Qt.quit()) }
+    property int sizeIndex: 0
+    function shots() { applySize() }
+    function applySize() {
+        if (sizeIndex >= sizes.length) { Qt.quit(); return }
+        win.width = sizes[sizeIndex][0]; win.height = sizes[sizeIndex][1]
+        delay.start()
+    }
+    Timer { id: delay; interval: 900; onTriggered: {
+        const name = sizes.length === 3 && !win.args.some(x => x.startsWith("--tamanhos=")) ? ["wide", "medium", "narrow"][win.sizeIndex] : win.width + "x" + win.height
+        win.shot(name, () => { win.sizeIndex++; win.applySize() }) } }
 }

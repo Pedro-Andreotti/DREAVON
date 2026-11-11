@@ -3,7 +3,8 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
 // Topo do widget: logo, horário, clima resumido e um resumo do que importa agora.
-// mode: "full" (tudo em linha), "compact" (resumo embaixo), "stacked" (coluna estreita).
+// O formato muda sozinho conforme a largura: "full" (tudo em linha), "compact" (resumo embaixo)
+// e "stacked" (coluna estreita).
 Rectangle {
     id: hero
     required property var t
@@ -13,7 +14,10 @@ Rectangle {
     required property var net
     property string reminders: "[]"
     property string userName
-    property string mode: "full"
+    property string mode: "full"   // sem efeito: o formato vem da largura
+    property bool editing: false
+    signal editRequested()
+    readonly property string eff: width >= 900 ? "full" : width >= 600 ? "compact" : "stacked"
 
     readonly property var w: dash.weatherDetails || ({})
     readonly property var sys: dash.systemDetails || ({})
@@ -53,14 +57,16 @@ Rectangle {
         Layout.fillWidth: true
         Layout.preferredWidth: 1
         implicitHeight: 54
+        readonly property bool slim: width < 150
         radius: 11
         color: tileHover.hovered && clickable ? hero.t.cardRaised : Qt.rgba(1, 1, 1, 0.035)
         border.color: hero.t.border
         HoverHandler { id: tileHover; cursorShape: tile.clickable ? Qt.PointingHandCursor : Qt.ArrowCursor }
         TapHandler { enabled: tile.clickable; onTapped: tile.activated() }
         RowLayout {
-            anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; spacing: 9
+            anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 8; spacing: 9
             Rectangle {
+                visible: !tile.slim
                 Layout.preferredWidth: 30; Layout.preferredHeight: 30; radius: 9
                 color: hero.t.accentSoft
                 Kirigami.Icon { visible: tile.icon !== ""; anchors.centerIn: parent; source: tile.icon; width: 16; height: 16; isMask: true; color: hero.t.accent }
@@ -79,7 +85,7 @@ Rectangle {
         id: grid
         anchors.fill: parent
         anchors.margins: 14
-        columns: hero.mode === "full" ? 5 : hero.mode === "compact" ? 3 : 1
+        columns: hero.eff === "full" ? 5 : hero.eff === "compact" ? 3 : 1
         columnSpacing: 18; rowSpacing: 12
 
         // Logo + horário
@@ -90,6 +96,22 @@ Rectangle {
                 spacing: 8
                 Image { source: "assets/icon.png"; Layout.preferredWidth: 26; Layout.preferredHeight: 26; sourceSize: Qt.size(64, 64); smooth: true; mipmap: true }
                 Image { source: "assets/wordmark.png"; Layout.preferredHeight: 17; Layout.preferredWidth: 17 * 468 / 96; smooth: true; mipmap: true; fillMode: Image.PreserveAspectFit }
+                // Editar o layout: sempre ao lado do logo, sem cobrir nenhum conteúdo.
+                Rectangle {
+                    visible: !hero.editing
+                    Layout.leftMargin: 6
+                    Layout.preferredHeight: 26; Layout.preferredWidth: hero.eff === "full" ? 26 : editRow.implicitWidth + 20; radius: 13
+                    color: editHover.hovered ? hero.t.accentSoft : Qt.rgba(hero.t.accent.r, hero.t.accent.g, hero.t.accent.b, 0.08)
+                    border.color: editHover.hovered ? hero.t.accent : hero.t.accentLine
+                    Row {
+                        id: editRow; anchors.centerIn: parent; spacing: 5
+                        Kirigami.Icon { source: "document-edit"; width: 14; height: 14; isMask: true; color: hero.t.accent; anchors.verticalCenter: parent.verticalCenter }
+                        Text { visible: hero.eff !== "full"; text: "Editar"; color: hero.t.accent; font.pixelSize: 11; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                    }
+                    HoverHandler { id: editHover; cursorShape: Qt.PointingHandCursor }
+                    TapHandler { onTapped: hero.editRequested() }
+                    ToolTipText { t: hero.t; visible: editHover.hovered; text: "Editar layout: mover, ocultar e redimensionar cartões" }
+                }
             }
             RowLayout {
                 spacing: 4; Layout.topMargin: 2
@@ -100,12 +122,12 @@ Rectangle {
             Text { text: hero.dash.localDate || ""; color: hero.t.muted; font.pixelSize: 12 }
         }
 
-        Rectangle { visible: hero.mode !== "stacked"; Layout.fillHeight: true; width: 1; color: hero.t.border }
+        Rectangle { visible: hero.eff !== "stacked"; Layout.fillHeight: true; width: 1; color: hero.t.border }
 
         // Clima resumido
         RowLayout {
             spacing: 10
-            Layout.alignment: hero.mode === "stacked" ? Qt.AlignLeft : Qt.AlignVCenter
+            Layout.alignment: hero.eff === "stacked" ? Qt.AlignLeft : Qt.AlignVCenter
             Item {
                 Layout.preferredWidth: 56; Layout.preferredHeight: 56
                 WeatherIcon { anchors.centerIn: parent; scale: 1.3; code: hero.w.code !== undefined ? hero.w.code : (hero.dash.forecast.length ? hero.dash.forecast[0].code : 0); animated: hero.t.animations }
@@ -126,14 +148,14 @@ Rectangle {
             }
         }
 
-        Rectangle { visible: hero.mode === "full"; Layout.fillHeight: true; width: 1; color: hero.t.border }
+        Rectangle { visible: hero.eff === "full"; Layout.fillHeight: true; width: 1; color: hero.t.border }
 
         // Resumo do que importa agora
         GridLayout {
             Layout.fillWidth: true
-            Layout.columnSpan: hero.mode === "compact" ? 3 : 1
+            Layout.columnSpan: hero.eff === "compact" ? 3 : 1
             Layout.alignment: Qt.AlignVCenter
-            columns: hero.mode === "stacked" ? 2 : 3
+            columns: hero.eff === "stacked" ? Math.max(2, Math.min(3, Math.floor(width / 150))) : 3
             columnSpacing: 8; rowSpacing: 8
 
             Tile {

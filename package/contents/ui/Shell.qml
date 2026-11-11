@@ -23,7 +23,8 @@ Item {
     signal saveLayout(string json)
     signal editRequested(bool on)
 
-    readonly property string mode: width >= 1100 ? "wide" : width >= 720 ? "medium" : "narrow"
+    // Largo só quando cabe confortável: poucas alturas viram o layout médio, que rola.
+    readonly property string mode: width >= 1100 && height >= 700 ? "wide" : width >= 720 ? "medium" : "narrow"
     property int tab: 0   // estreito: 0 = Painel, 1 = Chat
     property var wideChat: null
     function focusChat() {
@@ -160,28 +161,6 @@ Item {
         sourceComponent: shell.mode === "wide" ? wideLayout : shell.mode === "medium" ? mediumLayout : narrowLayout
     }
 
-    // Lápis de edição: sempre à vista, em qualquer tamanho.
-    Rectangle {
-        id: pencil
-        visible: !shell.editing
-        z: 5
-        anchors.top: parent.top; anchors.right: parent.right; anchors.topMargin: 6; anchors.rightMargin: 8
-        height: 28; width: shell.mode === "narrow" ? 28 : pencilRow.implicitWidth + 22; radius: 14
-        color: pencilHover.hovered ? shell.t.accentSoft : Qt.rgba(shell.t.accent.r, shell.t.accent.g, shell.t.accent.b, 0.08)
-        border.color: pencilHover.hovered ? shell.t.accent : shell.t.accentLine
-        Behavior on color { ColorAnimation { duration: shell.t.duration } }
-        Row {
-            id: pencilRow
-            anchors.centerIn: parent; spacing: 6
-            Kirigami.Icon { source: "document-edit"; width: 15; height: 15; isMask: true; color: shell.t.accent; anchors.verticalCenter: parent.verticalCenter }
-            Text { visible: shell.mode !== "narrow"; text: "Editar layout"; color: shell.t.accent; font.pixelSize: 11; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
-        }
-        HoverHandler { id: pencilHover; cursorShape: Qt.PointingHandCursor }
-        TapHandler { onTapped: shell.editRequested(true) }
-        B.ToolTip.visible: pencilHover.hovered && shell.mode === "narrow"
-        B.ToolTip.text: "Editar layout"
-    }
-
     // Cartão sendo arrastado.
     Rectangle {
         visible: shell.dragId !== ""
@@ -282,7 +261,7 @@ Item {
             visible: shell.editing
             z: 10
             opacity: shell.dragId === slot.cardId ? 0.35 : 1
-            Rectangle { anchors.fill: parent; radius: shell.t.radius; color: Qt.rgba(shell.t.accent.r, shell.t.accent.g, shell.t.accent.b, 0.10); border.color: shell.t.accentLine; border.width: 2 }
+            Rectangle { anchors.fill: parent; radius: shell.t.radius; color: Qt.rgba(shell.t.background.r, shell.t.background.g, shell.t.background.b, 0.66); border.color: shell.t.accentLine; border.width: 2 }
             MouseArea {
                 anchors.fill: parent
                 cursorShape: slot.stacked ? Qt.ArrowCursor : Qt.SizeAllCursor
@@ -317,14 +296,21 @@ Item {
     }
 
     // Cartões reutilizados nos layouts empilhados (médio e estreito), na ordem escolhida.
-    component CardStack: ColumnLayout {
-        spacing: shell.t.gap
-        EditBar { visible: shell.editing; compact: true; Layout.fillWidth: true }
+    component CardStack: GridLayout {
+        // Duas colunas quando sobra largura; uma só quando o espaço é curto.
+        columns: width >= 640 ? 2 : 1
+        columnSpacing: shell.t.gap; rowSpacing: shell.t.gap
+        EditBar { visible: shell.editing; compact: true; Layout.fillWidth: true; Layout.columnSpan: parent.columns }
         Repeater {
             model: shell.stackOrder
-            delegate: Slot { required property string modelData; cardId: modelData; stacked: true }
+            delegate: Slot {
+                required property string modelData
+                cardId: modelData; stacked: true
+                Layout.preferredWidth: 100
+                Layout.alignment: Qt.AlignTop
+            }
         }
-        WeatherFooter { t: shell.t; dash: shell.dash; compact: true; Layout.fillWidth: true }
+        WeatherFooter { t: shell.t; dash: shell.dash; compact: true; Layout.fillWidth: true; Layout.columnSpan: parent.columns }
     }
 
     Component {
@@ -335,7 +321,7 @@ Item {
             HeroPanel {
                 id: hero
                 width: parent.width
-                t: shell.t; dash: shell.dash; client: shell.client; media: shell.media; net: shell.net; reminders: shell.cfg.reminders || "[]"; userName: shell.cfg.userName || ""; mode: "full"
+                t: shell.t; dash: shell.dash; client: shell.client; media: shell.media; net: shell.net; reminders: shell.cfg.reminders || "[]"; userName: shell.cfg.userName || ""; mode: "full"; editing: shell.editing; onEditRequested: shell.editRequested(true)
             }
             WeatherFooter {
                 id: footer
@@ -500,7 +486,7 @@ Item {
                     id: column
                     width: scroller.width - (scroller.contentHeight > scroller.height ? 8 : 0)
                     spacing: shell.t.gap
-                    HeroPanel { t: shell.t; dash: shell.dash; client: shell.client; media: shell.media; net: shell.net; reminders: shell.cfg.reminders || "[]"; userName: shell.cfg.userName || ""; mode: "compact"; Layout.fillWidth: true }
+                    HeroPanel { t: shell.t; dash: shell.dash; client: shell.client; media: shell.media; net: shell.net; reminders: shell.cfg.reminders || "[]"; userName: shell.cfg.userName || ""; mode: "compact"; editing: shell.editing; onEditRequested: shell.editRequested(true); Layout.fillWidth: true }
                     CardStack { Layout.fillWidth: true }
                 }
             }
@@ -525,7 +511,7 @@ Item {
                     id: column
                     width: scroller.width - (scroller.contentHeight > scroller.height ? 8 : 0)
                     spacing: shell.t.gap
-                    HeroPanel { t: shell.t; dash: shell.dash; client: shell.client; media: shell.media; net: shell.net; reminders: shell.cfg.reminders || "[]"; userName: shell.cfg.userName || ""; mode: "stacked"; Layout.fillWidth: true }
+                    HeroPanel { t: shell.t; dash: shell.dash; client: shell.client; media: shell.media; net: shell.net; reminders: shell.cfg.reminders || "[]"; userName: shell.cfg.userName || ""; mode: "stacked"; editing: shell.editing; onEditRequested: shell.editRequested(true); Layout.fillWidth: true }
                     CardStack { Layout.fillWidth: true }
                 }
             }

@@ -55,7 +55,7 @@ Card {
             delegate: Item {
                 required property var modelData
                 Layout.fillWidth: true; Layout.fillHeight: true
-                Layout.preferredHeight: 22; Layout.minimumHeight: 20
+                Layout.preferredHeight: 22; Layout.minimumHeight: 20; Layout.maximumHeight: 40
                 Rectangle {
                     anchors.centerIn: parent
                     width: Math.min(parent.width, parent.height, 26); height: width; radius: width / 2
