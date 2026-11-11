@@ -46,7 +46,7 @@ Window {
     Platform.SystemTrayIcon {
         id: tray
         visible: true
-        icon.source: Qt.resolvedUrl("assets/icon.png")
+        icon.source: Qt.resolvedUrl("assets/dreavon.ico")
         tooltip: {
             const used = claudeBackend.fiveHourUsed
             return root.title + "\n" + claudeBackend.providerName + " · " + claudeBackend.status
@@ -183,7 +183,7 @@ Window {
             Row {
                 anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
                 spacing: 4
-                IconButton { t: themeBackend; icon: "preferences-system"; tip: "Configurações"; size: 24; onClicked: settingsWindow.open(0) }
+                IconButton { t: themeBackend; icon: "configure"; tip: "Configurações"; size: 24; onClicked: settingsWindow.open(0) }
                 IconButton { t: themeBackend; icon: "go-down"; tip: "Minimizar"; size: 24; onClicked: root.showMinimized() }
                 IconButton { t: themeBackend; icon: "window-close"; tip: "Fechar (continua na bandeja)"; size: 24; onClicked: root.close() }
             }

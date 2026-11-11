@@ -78,7 +78,8 @@ native/        Núcleo C++ (chat, clima, sistema, música e rede)
 package/       Interface QML e configurações (formato de plasmoide da base)
 docs/          Plano do port, notas de desenvolvimento e identidade visual
   brand/       Logo, marca e banner do DREAVON
-images/        Logos e ícones originais da base
+app/           Inicializador nativo (dreavon.exe), para o futuro instalador
+windows/       Ponto de entrada no Windows e substituto mínimo do Kirigami
 tests/         Testes herdados (chat simulado e música simulada)
 tools/         Prévia da interface fora do Plasma
 ```

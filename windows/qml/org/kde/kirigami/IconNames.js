@@ -12,6 +12,7 @@ var names = {
     "chronometer": true,
     "computer-laptop": true,
     "computer-symbolic": true,
+    "configure": true,
     "dialog-warning": true,
     "document-edit": true,
     "document-open": true,

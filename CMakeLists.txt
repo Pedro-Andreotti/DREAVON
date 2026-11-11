@@ -66,7 +66,7 @@ if(WIN32)
 endif()
 
 # Inicializador: abre o main.qml numa janela própria, com ícone na bandeja.
-add_executable(dreavon WIN32 app/main.cpp)
+add_executable(dreavon WIN32 app/main.cpp app/dreavon.rc)
 target_link_libraries(dreavon PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Qml)
 target_compile_definitions(dreavon PRIVATE DREAVON_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 if(MSVC)
