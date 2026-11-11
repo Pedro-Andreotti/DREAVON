@@ -199,6 +199,7 @@ Rectangle {
         // Mensagens + histórico por cima
         Item {
             Layout.fillWidth: true; Layout.fillHeight: true
+            clip: true   // o estado vazio não invade o aviso de erro acima nem a caixa de texto abaixo
 
             ListView {
                 id: messages
@@ -237,9 +238,11 @@ Rectangle {
                 Connections { target: chat.client; function onScrollToLatest() { Qt.callLater(messages.positionViewAtEnd) } }
             }
 
-            // Estado vazio com sugestões
+            // Estado vazio com sugestões: centralizado, mas sem subir além do topo quando falta altura
+            // (por exemplo, com o aviso de erro aberto).
             ColumnLayout {
-                anchors.centerIn: parent
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: Math.max(0, (parent.height - height) / 2)
                 width: Math.min(parent.width - 20, 420)
                 visible: messages.count === 0 && !chat.client.conversationLoading
                 spacing: 10
