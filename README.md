@@ -27,9 +27,9 @@ Um widget para KDE Plasma 6 com chat integrado ao **Antigravity**, **Claude** e 
 | **Cotas** | Barras da cota de 5 horas e semanal para Antigravity (separadas por família de modelo: Gemini 4 Argon, Gemini e Claude/GPT) e Claude Code, com o tempo até renovar. O ícone do painel mostra a cota de 5 h em um anel. |
 | **Música** | Qualquer player compatível com MPRIS (Spotify, YouTube no navegador, VLC, Elisa…): capa, título, artista, barra de progresso clicável, tocar/pausar, anterior, próxima, aleatório, repetir e volume. O Spotify tem prioridade e um botão para abrir. A última música fica lembrada com a capa guardada: com o player fechado ou sem internet ela continua aparecendo, e um clique abre o Spotify e retoma do ponto em que parou. |
 | **Rede** | Nome da rede, sinal do Wi-Fi, IP local, latência e gráfico de download/upload em tempo real. |
-| **Lembretes** | Lista rápida com marcar como feito, remover e limpar concluídos. Fica salva nas configurações do widget. |
+| **Lembretes** | Lista rápida com marcar como feito, remover e limpar concluídos. Escreva o horário na frase (“ligar para o João **amanhã 9h**”, “remédio **em 20 min**”, “dentista **sexta 14h30**”) e o lembrete vira um **alarme**: o Plasdria avisa com uma notificação do sistema na hora, mesmo com o painel fechado, e dá para adiar 10 minutos. Fica salva nas configurações do widget. |
 | **Sistema** | CPU, GPU, RAM e disco em anéis com cores por nível de uso, mais processador, temperaturas da CPU e do SSD, memória e swap, carga, processos, tempo ligado, bateria e versão do sistema. |
-| **Calendário** | Mês atual com navegação, hoje destacado, semana do ano e dia do ano. |
+| **Calendário** | Mês atual com navegação, hoje destacado, semana do ano e dia do ano. Com o link iCal da sua agenda (Google Agenda, Nextcloud, Outlook…), mostra pontinhos nos dias com compromissos e a agenda do dia que você tocar, incluindo eventos que se repetem. |
 | **Dispositivos** | Bateria do notebook e de periféricos que publicam essa informação (UPower/BlueZ). |
 | **Notícias** | Lista de manchetes do Google News Brasil com fonte e horário, tema configurável (Tecnologia, Esportes, Economia…). |
 
@@ -43,7 +43,7 @@ O layout se adapta ao espaço: em telas largas, o **painel geral** fica em cima 
 
 Clique com o botão direito no widget → **Configurar Plasdria…**
 
-- **Geral** — seu nome para a saudação, cidade (busca por nome) ou detecção automática, IA padrão (Antigravity, Claude, Codex, Gemini CLI, Ollama ou API Compatível), modelo e esforço padrão, endpoint/chave para API compatível e tema das notícias.
+- **Geral** — seu nome para a saudação, links iCal da agenda (um por linha), cidade (busca por nome) ou detecção automática, IA padrão (Antigravity, Claude, Codex, Gemini CLI, Ollama ou API Compatível), modelo e esforço padrão, endpoint/chave para API compatível e tema das notícias.
 - **Cartões** — escolha quais cartões aparecem (a posição de cada um se edita no próprio widget).
 - **Aparência** — cor de destaque, opacidade do fundo e animações.
 - **Atalhos de teclado** — defina um atalho global para abrir o chat (página padrão do Plasma).
@@ -110,6 +110,8 @@ Pela linha de comando: `./build.sh`, `./install.sh`, `bash tests/run.sh` e `qml6
 - As conversas ficam nos próprios CLIs (por exemplo `~/.claude/projects` e `~/.gemini/antigravity-cli`). O Plasdria guarda só o estado de recuperação em `~/.local/share/plasdria/chat-state.json`, privado do usuário.
 - **Perguntas, anexos e contexto enviados são processados pela IA escolhida** (e, ao trocar de IA no meio da conversa, o histórico na tela é reenviado como contexto para a nova). Com o Claude, o widget roda sem plugins, hooks ou servidores MCP do usuário e só libera ferramentas de leitura e busca (`Read`, `Glob`, `Grep`, `WebSearch`, `WebFetch`); nos demais, pedidos de permissão extra são recusados e o widget não usa opções que aprovam tudo automaticamente. O Ollama roda localmente.
 - A última música tocada fica em `~/.local/share/plasdria/media.json` e as capas em `~/.cache/plasdria/art` (no máximo 150).
+- A agenda é baixada dos links iCal que você configurar (somente leitura). Esse link costuma ser secreto: fica no arquivo de configuração do Plasma, na sua conta, e é usado apenas para baixar a agenda. Sem internet, o Plasdria continua mostrando o que já baixou até fechar.
+- Os alarmes dos lembretes funcionam localmente, sem rede.
 - Clima, cidades e notícias fazem consultas HTTPS. Com a cidade definida nas configurações, a localização por IP não é consultada.
 - A latência é medida abrindo uma conexão com `www.google.com:443` a cada 20 segundos.
 

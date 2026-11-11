@@ -7,6 +7,10 @@ if [[ -z "$task_qmake" ]]; then echo 'Instale o qmake do Qt 6.' >&2; exit 1; fi
 task_test_dir="$(mktemp -d "${TMPDIR:-/tmp}/pragus-tests.XXXXXX")"
 trap 'rm -rf "$task_test_dir"' EXIT
 "$task_root/build.sh"
+# Leitor de prazos e de agendas iCalendar (QML puro, sem rede).
+TZ=America/Sao_Paulo QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 QT_MESSAGE_PATTERN="%{message}" \
+    qml6 "$task_root/tests/timeparse_test.qml" 2>&1 | grep -E "FALHOU|PASSARAM|FALHA" | tee "$task_test_dir/timeparse.out"
+grep -q PASSARAM "$task_test_dir/timeparse.out"
 for task_suite in chathistory chatclient_test mediaclient_test; do
     mkdir "$task_test_dir/$task_suite"
     cd "$task_test_dir/$task_suite"

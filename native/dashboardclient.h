@@ -74,6 +74,8 @@ public:
     Q_INVOKABLE void setLocation(const QString &city, double latitude, double longitude);
     // Tópico do Google News: "" (principais), TECHNOLOGY, SPORTS, BUSINESS, ENTERTAINMENT, SCIENCE, HEALTH.
     Q_INVOKABLE void setNewsTopic(const QString &topic);
+    // Notificação do sistema (D-Bus org.freedesktop.Notifications), usada pelos alarmes dos lembretes.
+    Q_INVOKABLE void notify(const QString &title, const QString &body);
 
 signals:
     void clockChanged();

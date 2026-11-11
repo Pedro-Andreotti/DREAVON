@@ -18,6 +18,7 @@ KCM.SimpleKCM {
     property alias cfg_customApiKey: customApiKey.text
     property alias cfg_customModel: customModel.text
     property string cfg_newsTopic
+    property alias cfg_calendarUrls: calendarUrls.text
 
     property var results: []
     property string searchError: ""
@@ -210,6 +211,22 @@ KCM.SimpleKCM {
             model: page.topicOptions; textRole: "text"; valueRole: "value"
             currentIndex: page.indexOf(page.topicOptions, page.cfg_newsTopic)
             onActivated: page.cfg_newsTopic = currentValue
+        }
+
+        Kirigami.Separator { Kirigami.FormData.isSection: true; Kirigami.FormData.label: "Agenda" }
+
+        QQC2.TextArea {
+            id: calendarUrls
+            Kirigami.FormData.label: "Links iCal (.ics):"
+            placeholderText: "https://calendar.google.com/calendar/ical/.../basic.ics"
+            wrapMode: TextEdit.NoWrap
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 20
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 4
+        }
+        QQC2.Label {
+            text: "Um link por linha. No Google Agenda: Configurações da agenda → “Endereço secreto no formato iCal”. Esse endereço dá acesso à sua agenda: não o compartilhe. Os eventos aparecem no calendário e atualizam a cada 15 minutos."
+            wrapMode: Text.Wrap; opacity: 0.7
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 22
         }
     }
 }

@@ -15,21 +15,44 @@ Window {
     readonly property string question: positional[1] || ""
     readonly property bool hideNetwork: args.indexOf("--sem-rede") >= 0
     readonly property bool edit: args.indexOf("--editar") >= 0
+    readonly property bool demo: args.indexOf("--demo") >= 0
     QtObject {
         id: cfg
         property string userName: "Pietro"
         property bool showWeather: true; property bool showSystem: true; property bool showConnections: true
         property bool showCalendar: true
         property bool showMedia: true; property bool showNetwork: !win.hideNetwork; property bool showReminders: true; property bool showNews: true
-        property string reminders: '[{"id":"a","text":"Entregar trabalho de cálculo","done":false},{"id":"b","text":"Comprar café","done":true}]'
+        property string reminders: win.demo ? JSON.stringify([{id: "a", text: "Entregar trabalho de cálculo", done: false, due: Date.now() + 5 * 3600000, notified: false}, {id: "c", text: "Ligar para o João", done: false, due: Date.now() - 1800000, notified: true}, {id: "b", text: "Comprar café", done: true}]) : '[{"id":"a","text":"Entregar trabalho de cálculo","done":false},{"id":"b","text":"Comprar café","done":true}]'
     }
     Theme { id: theme }
     Backend.ClaudeClient { id: client; Component.onCompleted: start() }
     Backend.DashboardClient { id: dash; Component.onCompleted: { setLocation("Ourinhos", -22.97889, -49.87056); start() } }
     Backend.MediaClient { id: media }
-    Backend.NetworkClient { id: net }
-    Shell { id: shell; editing: win.edit; anchors.fill: parent; anchors.margins: 10; t: theme; client: client; dash: dash; media: media; net: net; cfg: cfg }
+    Backend.NetworkClient { id: realNet }
+    // Com --sem-rede, o nome do Wi-Fi não aparece nas capturas públicas.
+    QtObject {
+        id: maskedNet
+        readonly property bool online: realNet.online
+        readonly property int latency: realNet.latency
+        readonly property string connectionName: "Wi-Fi"
+        readonly property real downloadRate: realNet.downloadRate
+        function formatRate(v) { return realNet.formatRate(v) }
+    }
+    readonly property var netSource: win.hideNetwork ? maskedNet : realNet
+    Shell { id: shell; editing: win.edit;
+        feedConfigured: win.demo
+        events: win.demo ? win.demoEvents : []; anchors.fill: parent; anchors.margins: 10; t: theme; client: client; dash: dash; media: media; net: win.netSource; cfg: cfg }
 
+    // Eventos de exemplo (para as capturas do README).
+    readonly property var demoEvents: {
+        const d = new Date(), at = (days, h, m) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + days, h, m).getTime()
+        return [
+            {title: "Aula de Cálculo II", start: at(0, 19, 0), end: at(0, 22, 30), allDay: false, location: "Sala 12"},
+            {title: "Treino", start: at(0, 7, 0), end: at(0, 8, 0), allDay: false, location: ""},
+            {title: "Reunião do projeto", start: at(1, 14, 0), end: at(1, 15, 0), allDay: false, location: ""},
+            {title: "Prova de Física", start: at(3, 8, 0), end: at(3, 10, 0), allDay: false, location: ""},
+            {title: "Aniversário da Ana", start: at(6, 0, 0), end: at(7, 0, 0), allDay: true, location: ""}]
+    }
     property int stage: 0
     function shot(name, next) { win.contentItem.grabToImage(r => { r.saveToFile(outDir + "/" + name + ".png"); console.log("SHOT", name); next() }) }
     Timer {

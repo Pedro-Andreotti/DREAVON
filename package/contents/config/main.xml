@@ -16,6 +16,7 @@
     <entry name="customApiKey" type="String"><default></default></entry>
     <entry name="customModel" type="String"><default></default></entry>
     <entry name="newsTopic" type="String"><default></default></entry>
+    <entry name="calendarUrls" type="String"><default></default></entry>
   </group>
   <group name="Cards">
     <entry name="showWeather" type="Bool"><default>true</default></entry>

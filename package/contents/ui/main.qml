@@ -65,6 +65,28 @@ PlasmoidItem {
     readonly property string modelKey: cfg.defaultModel + "|" + cfg.defaultEffort
     onModelKeyChanged: if (claudeBackend.ready && !claudeBackend.busy) applyModelDefaults()
 
+    // Alarmes dos lembretes: avisa uma vez quando chega a hora (mesmo com o painel fechado).
+    Timer {
+        interval: 15000; running: true; repeat: true; triggeredOnStart: true
+        onTriggered: root.checkReminders()
+    }
+    function checkReminders() {
+        let list
+        try { list = JSON.parse(cfg.reminders || "[]") } catch (e) { return }
+        if (!Array.isArray(list)) return
+        const now = Date.now()
+        let changed = false
+        for (const item of list) {
+            if (item.done || !(item.due > 0) || item.notified || item.due > now) continue
+            item.notified = true; changed = true
+            // Lembretes muito antigos (widget estava fechado) são só marcados, sem barulho.
+            if (now - item.due < 6 * 3600 * 1000) dashBackend.notify("Lembrete", item.text)
+        }
+        if (changed) cfg.reminders = JSON.stringify(list)
+    }
+
+    IcsFeed { id: calendarFeed; urls: root.cfg.calendarUrls || "" }
+
     Backend.MediaClient { id: mediaBackend }
     Backend.NetworkClient { id: netBackend }
 
@@ -95,6 +117,7 @@ PlasmoidItem {
         id: shell
         t: themeBackend; client: claudeBackend; dash: dashBackend; media: mediaBackend; net: netBackend; cfg: root.cfg
         editing: root.layoutEditing
+        events: calendarFeed.events; feedConfigured: calendarFeed.configured; feedStatus: calendarFeed.status
         onEditRequested: on => root.layoutEditing = on
         onSaveReminders: json => root.cfg.reminders = json
         onSaveLayout: json => root.cfg.layout = json

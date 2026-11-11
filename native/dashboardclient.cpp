@@ -118,6 +118,14 @@ void DashboardClient::setNewsTopic(const QString &topic) {
     if (m_started) requestNews();
 }
 
+void DashboardClient::notify(const QString &title, const QString &body) {
+    auto message = QDBusMessage::createMethodCall("org.freedesktop.Notifications", "/org/freedesktop/Notifications",
+                                                  "org.freedesktop.Notifications", "Notify");
+    message << QStringLiteral("Plasdria") << uint(0) << QStringLiteral("plasdria") << title << body
+            << QStringList{} << QVariantMap{{"urgency", QVariant::fromValue<uchar>(1)}} << int(15000);
+    QDBusConnection::sessionBus().asyncCall(message, 3000);
+}
+
 void DashboardClient::refresh() {
     requestLocation();
     requestNews();

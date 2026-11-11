@@ -19,6 +19,10 @@ Item {
     required property var net
     required property var cfg
     property bool editing: false
+    // Eventos das agendas iCal configuradas (veja IcsFeed.qml).
+    property var events: []
+    property bool feedConfigured: false
+    property string feedStatus: ""
     signal saveReminders(string json)
     signal saveLayout(string json)
     signal editRequested(bool on)
@@ -177,7 +181,7 @@ Item {
     Component { id: compDevices; ConnectionsCard { t: shell.t; dash: shell.dash } }
     Component { id: compNetwork; NetworkCard { t: shell.t; net: shell.net } }
     Component { id: compMedia; MediaCard { t: shell.t; media: shell.media } }
-    Component { id: compCalendar; CalendarCard { t: shell.t } }
+    Component { id: compCalendar; CalendarCard { t: shell.t; events: shell.events; feedConfigured: shell.feedConfigured; feedStatus: shell.feedStatus } }
     Component { id: compReminders; RemindersCard { t: shell.t; stored: shell.cfg.reminders || "[]"; onSave: json => shell.saveReminders(json) } }
     Component { id: compNews; NewsCard { t: shell.t; dash: shell.dash } }
     Component { id: compChat; ChatView { id: wideChatView; t: shell.t; client: shell.client; Component.onCompleted: shell.wideChat = wideChatView } }
