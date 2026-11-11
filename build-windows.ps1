@@ -38,6 +38,7 @@ if ($Run) {
     # O Controle Inteligente de Aplicativos do Windows bloqueia o dreavon.exe (sem assinatura);
     # por isso o DREAVON abre pelo qml.exe do Qt, que é assinado.
     $env:PATH = "$QtDir\bin;$env:PATH"  # DLLs do Qt
-    Start-Process -FilePath "$QtDir\bin\qml.exe" -ArgumentList @(
+    # -WindowStyle Hidden esconde só o console do qml.exe; a janela do DREAVON abre normalmente.
+    Start-Process -FilePath "$QtDir\bin\qml.exe" -WindowStyle Hidden -ArgumentList @(
         '--apptype', 'widget', '-I', "`"$root\windows\qml`"", "`"$root\windows\dreavon.qml`"")
 }

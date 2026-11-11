@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Window
 import QtQuick.Layouts
+import QtQuick.Controls.Basic as B
+import Qt.labs.platform as Platform
 import "bridge" as Backend
 
 // Janela principal do DREAVON, fora do Plasma: sem moldura do sistema, fundo escuro com
@@ -23,6 +25,45 @@ Window {
         if (root.visibility === Window.Minimized || !root.visible) root.showNormal()
         root.raise(); root.requestActivate()
         shell.focusChat()
+    }
+    function togglePanel() {
+        if (root.visible && root.visibility !== Window.Minimized && root.active) root.hide()
+        else root.showPanel()
+    }
+    // Fechar a janela só a esconde: o DREAVON continua na bandeja (sai pelo menu "Sair").
+    onClosing: close => { close.accepted = false; root.hide() }
+
+    // As quatro ações do antigo menu do plasmoide (bandeja e clique direito na barra de título).
+    readonly property var panelActions: [
+        {text: "Nova conversa", run: () => { claudeBackend.newChat(); root.showPanel() }},
+        {text: "Alternar IA (" + claudeBackend.providerName + ")", run: () => { claudeBackend.nextProvider(); root.showPanel() }},
+        {text: root.layoutEditing ? "Concluir a edição do layout" : "Editar layout", run: () => { root.layoutEditing = !root.layoutEditing; root.showPanel() }},
+        {text: "Reconectar ao " + claudeBackend.providerName, run: () => claudeBackend.reconnect()}
+    ]
+
+    Platform.SystemTrayIcon {
+        id: tray
+        visible: true
+        icon.source: Qt.resolvedUrl("assets/icon.png")
+        tooltip: {
+            const used = claudeBackend.fiveHourUsed
+            return root.title + "\n" + claudeBackend.providerName + " · " + claudeBackend.status
+                + (used >= 0 ? " · " + Math.round(100 - used) + "% da cota de 5h livre" : "")
+        }
+        onActivated: reason => { if (reason === Platform.SystemTrayIcon.Trigger) root.togglePanel() }
+        menu: Platform.Menu {
+            Platform.MenuItem {
+                text: root.visible ? "Ocultar" : "Mostrar"
+                onTriggered: root.visible ? root.hide() : root.showPanel()
+            }
+            Platform.MenuSeparator {}
+            Platform.MenuItem { text: root.panelActions[0].text; onTriggered: root.panelActions[0].run() }
+            Platform.MenuItem { text: root.panelActions[1].text; onTriggered: root.panelActions[1].run() }
+            Platform.MenuItem { text: root.panelActions[2].text; onTriggered: root.panelActions[2].run() }
+            Platform.MenuItem { text: root.panelActions[3].text; onTriggered: root.panelActions[3].run() }
+            Platform.MenuSeparator {}
+            Platform.MenuItem { text: "Sair"; onTriggered: Qt.quit() }
+        }
     }
 
     Theme {
@@ -117,6 +158,17 @@ Window {
             TapHandler {
                 onDoubleTapped: root.visibility === Window.Maximized ? root.showNormal() : root.showMaximized()
             }
+            TapHandler {
+                acceptedButtons: Qt.RightButton
+                onTapped: windowMenu.popup()
+            }
+            B.Menu {
+                id: windowMenu
+                Repeater {
+                    model: root.panelActions
+                    B.MenuItem { required property var modelData; text: modelData.text; onTriggered: modelData.run() }
+                }
+            }
             Text {
                 anchors { left: parent.left; leftMargin: 16; verticalCenter: parent.verticalCenter }
                 text: root.title
@@ -127,7 +179,7 @@ Window {
                 anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
                 spacing: 4
                 IconButton { t: themeBackend; icon: "go-down"; tip: "Minimizar"; size: 24; onClicked: root.showMinimized() }
-                IconButton { t: themeBackend; icon: "window-close"; tip: "Fechar"; size: 24; onClicked: root.close() }
+                IconButton { t: themeBackend; icon: "window-close"; tip: "Fechar (continua na bandeja)"; size: 24; onClicked: root.close() }
             }
         }
 
