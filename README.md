@@ -1,3 +1,5 @@
+> **DREAVON** é uma adaptação para **Windows** do [Plasdria](https://github.com/PietroAlexandria/Plasdria), widget para KDE Plasma criado por Pietro Alexandria (MIT). Este repositório parte do histórico original e está em desenvolvimento; o texto abaixo ainda descreve o projeto Linux. Veja o plano da adaptação em [docs/windows-port.md](docs/windows-port.md).
+
 <div align="center">
 
 <img src="docs/banner.png" width="720" alt="Plasdria — Widget para KDE Plasma" />
@@ -131,3 +133,7 @@ tools/         Prévia/capturas fora do Plasma
 ## Licença
 
 [MIT](LICENSE). Parte do núcleo (clima, sistema e histórico) vem do [PRAGUS](https://github.com/gustavoprad0/PRAGUS), também MIT. Projeto independente, sem afiliação com a Anthropic, o KDE ou os provedores de dados.
+
+## Baseado no Plasdria
+
+O DREAVON é derivado do [Plasdria](https://github.com/PietroAlexandria/Plasdria) (© Pietro Alexandria, MIT), que por sua vez inclui código do [PRAGUS](https://github.com/gustavoprad0/PRAGUS) (MIT). Os avisos de copyright originais foram mantidos no [LICENSE](LICENSE).
