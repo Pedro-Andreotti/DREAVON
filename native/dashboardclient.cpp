@@ -30,13 +30,21 @@ Q_DECLARE_METATYPE(DBusInterfaces)
 Q_DECLARE_METATYPE(DBusObjects)
 #endif
 
+#ifdef Q_OS_WIN
+#include "systeminfo_win.h"
+#endif
+
 namespace {
 QString machineName() {
+#ifdef Q_OS_WIN
+    const auto model = SystemInfoWin::productName();   // registro: BIOS\SystemProductName
+#else
     auto read = [](const QString &path) {
         QFile file(path);
         return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()).trimmed() : QString();
     };
     const auto model = read(QStringLiteral("/sys/class/dmi/id/product_name"));
+#endif
     const QStringList placeholders = {"System Product Name", "To Be Filled By O.E.M.", "Default string", "Not Specified"};
     if (!model.isEmpty() && !placeholders.contains(model, Qt::CaseInsensitive)) return model;
     const auto hostname = QHostInfo::localHostName();
@@ -174,6 +182,37 @@ QString duration(qint64 seconds) {
 }
 }
 
+#ifdef Q_OS_WIN
+// Mesmo formato do Linux, com as fontes do Windows (ver systeminfo_win.cpp).
+void DashboardClient::updateSystemDetails() {
+    static const QString cpuModel = [] {
+        QString name = SystemInfoWin::cpuModel();
+        name.remove(QRegularExpression("\\((R|TM|tm|r)\\)")).remove(QRegularExpression("\\s*@.*$"));
+        name.remove(QRegularExpression("\\b(CPU|Processor|\\d+-Core)\\b"));
+        return name.simplified();
+    }();
+    static const QString build = SystemInfoWin::windowsVersion();
+    QVariantMap d = m_systemDetails;
+    d["cpuModel"] = cpuModel;
+    d["cores"] = QThread::idealThreadCount();
+    d["cpuTemp"] = -1;    // sem fonte nativa sem administrador no Windows (decisão do passo 4)
+    d["diskTemp"] = SystemInfoWin::systemDiskTemperature();   // driver de armazenamento, sem administrador
+    d["uptime"] = duration(SystemInfoWin::uptimeSeconds());
+    d["load"] = QString();   // o Windows não tem "load average": não inventar
+    const int processes = SystemInfoWin::processCount();
+    d["processes"] = processes > 0 ? processes : 0;
+    quint64 swapTotal = 0, swapUsed = 0;
+    if (SystemInfoWin::pageFile(&swapTotal, &swapUsed)) {
+        d["swapUsedGiB"] = double(swapUsed) / 1073741824.0;
+        d["swapTotalGiB"] = double(swapTotal) / 1073741824.0;
+    } else {
+        d["swapUsedGiB"] = 0.0; d["swapTotalGiB"] = 0.0;   // 0 = sem swap: a linha não mostra o swap
+    }
+    d["distro"] = QSysInfo::prettyProductName() + (build.isEmpty() ? QString() : QStringLiteral(" · ") + build);
+    d["kernel"] = QString();   // "kernel" é do Linux; a compilação do Windows já vai em "distro"
+    m_systemDetails = d;
+}
+#else
 void DashboardClient::updateSystemDetails() {
     static const QString cpuModel = [] {
         QFile f(QStringLiteral("/proc/cpuinfo"));
@@ -211,6 +250,7 @@ void DashboardClient::updateSystemDetails() {
     d["kernel"] = QSysInfo::kernelVersion().section('-', 0, 0);
     m_systemDetails = d;
 }
+#endif
 
 void DashboardClient::requestBatteryDetails() {
 #ifdef QT_DBUS_LIB
@@ -228,11 +268,27 @@ void DashboardClient::requestBatteryDetails() {
         emit changed();
     });
 #endif
-    // TODO(Windows): GetSystemPowerStatus.
+    // No Windows a bateria é lida em updateMetrics (GetSystemPowerStatus).
 }
 
 void DashboardClient::updateMetrics() {
     updateSystemDetails();
+#ifdef Q_OS_WIN
+    // CPU: GetSystemTimes, pela diferença entre duas leituras (como o /proc/stat no Linux).
+    quint64 idle = 0, total = 0;
+    if (SystemInfoWin::cpuTimes(&idle, &total)) {
+        if (m_cpuTotal > 0 && total > m_cpuTotal && idle >= m_cpuIdle)
+            m_cpuUsage = qBound(0.0, 100.0 * (1.0 - double(idle - m_cpuIdle) / double(total - m_cpuTotal)), 100.0);
+        m_cpuTotal = total; m_cpuIdle = idle;
+    }
+    // Memória: GlobalMemoryStatusEx (ullAvailPhys, equivalente ao MemAvailable).
+    quint64 memTotal = 0, memAvailable = 0;
+    if (SystemInfoWin::memory(&memTotal, &memAvailable) && memTotal) {
+        m_memoryUsage = 100.0 * (1.0 - double(memAvailable) / double(memTotal));
+        m_memoryUsedGiB = double(memTotal - memAvailable) / 1073741824.0;
+        m_memoryTotalGiB = double(memTotal) / 1073741824.0;
+    }
+#else
     QFile cpuFile(QStringLiteral("/proc/stat"));
     if (cpuFile.open(QIODevice::ReadOnly)) {
         const auto line = QString::fromUtf8(cpuFile.readLine());
@@ -268,7 +324,16 @@ void DashboardClient::updateMetrics() {
             m_memoryTotalGiB = double(total) / 1048576.0;
         }
     }
+#endif
 
+#ifdef Q_OS_WIN
+        // GPU: contadores PDH "GPU Engine" (todas as GPUs, sem abrir processo). O nvidia-smi só entra
+        // se o PDH não responder: ele vê só a NVIDIA e, num notebook, pode manter a GPU dedicada acordada.
+        const double gpu = SystemInfoWin::gpuUsage();
+        if (gpu >= 0) m_gpuUsage = gpu;
+        else if (m_gpuProcess.state() == QProcess::NotRunning && !QStandardPaths::findExecutable(QStringLiteral("nvidia-smi")).isEmpty())
+            m_gpuProcess.start(QStringLiteral("nvidia-smi"), {"--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"});
+#else
         QDir drm(QStringLiteral("/sys/class/drm"));
         for (const auto &card : drm.entryList(QStringList() << "card*", QDir::Dirs | QDir::NoDotAndDotDot)) {
             QFile busy(drm.filePath(card + QStringLiteral("/device/gpu_busy_percent")));
@@ -279,6 +344,7 @@ void DashboardClient::updateMetrics() {
         }
         if (m_gpuProcess.state() == QProcess::NotRunning && QStandardPaths::findExecutable(QStringLiteral("nvidia-smi")).isEmpty() == false)
             m_gpuProcess.start(QStringLiteral("nvidia-smi"), {"--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"});
+#endif
 
         m_usbDevices.clear();
         auto read = [](const QString &path) { QFile f(path); return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()).trimmed() : QString(); };
@@ -309,6 +375,20 @@ void DashboardClient::updateMetrics() {
     }
 
     m_batteryPercent = -1;
+#ifdef Q_OS_WIN
+    // Bateria: GetSystemPowerStatus. PC de mesa fica "Sem bateria" (e o percentual -1), nunca 0%.
+    const auto power = SystemInfoWin::power();
+    if (power.valid && power.hasBattery) {
+        m_batteryPercent = power.percent;
+        m_batteryStatus = power.charging ? QStringLiteral("Charging") : power.onAc ? (power.percent >= 100 ? QStringLiteral("Full") : QStringLiteral("Not charging")) : QStringLiteral("Discharging");
+        m_systemDetails["batteryState"] = power.charging ? QStringLiteral("Carregando") : power.onAc ? (power.percent >= 100 ? QStringLiteral("Carregada") : QStringLiteral("Conectada")) : QStringLiteral("Na bateria");
+        m_systemDetails["batteryTime"] = power.secondsLeft > 0 ? duration(power.secondsLeft) + QStringLiteral(" restantes") : QString();
+    } else {
+        m_batteryStatus = QStringLiteral("Indisponível");
+        m_systemDetails["batteryState"] = power.valid ? QStringLiteral("Sem bateria") : QString();
+        m_systemDetails["batteryTime"] = QString();
+    }
+#else
     QDir batteries(QStringLiteral("/sys/class/power_supply"));
     for (const auto &name : batteries.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
         QFile type(batteries.filePath(name + "/type"));
@@ -323,6 +403,7 @@ void DashboardClient::updateMetrics() {
             break;
         }
     }
+#endif
 
     QFile net(QStringLiteral("/proc/net/dev"));
     quint64 received = 0;

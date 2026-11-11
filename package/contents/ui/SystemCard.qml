@@ -41,7 +41,9 @@ Card {
                 ["Temperatura", "CPU " + card.temp(card.d.cpuTemp) + "  ·  SSD " + card.temp(card.d.diskTemp)],
                 ["Memória", card.gib(card.dash.memoryUsedGiB, card.dash.memoryTotalGiB) + (card.d.swapTotalGiB > 0 ? "  ·  swap " + card.d.swapUsedGiB.toFixed(1) + " GiB" : "")],
                 ["Disco", card.gib(card.dash.storageUsedGiB, card.dash.storageTotalGiB)],
-                ["Carga", (card.d.load || "—") + (card.d.processes ? "  ·  " + card.d.processes + " processos" : "")],
+                // Sem "load average" (Windows), a linha mostra só o número de processos.
+                card.d.load ? ["Carga", card.d.load + (card.d.processes ? "  ·  " + card.d.processes + " processos" : "")]
+                            : ["Processos", card.d.processes ? String(card.d.processes) : "—"],
                 ["Sistema", [card.d.distro, card.d.kernel ? "kernel " + card.d.kernel : ""].filter(Boolean).join(" · ") || "—"]
             ]
             delegate: Repeater {
