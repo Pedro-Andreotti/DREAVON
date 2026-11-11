@@ -20,12 +20,17 @@ add_library(dreavonplugin MODULE
     native/chathistory.cpp native/chathistory.h
     native/mediaclient.cpp native/mediaclient.h
     native/networkclient.cpp native/networkclient.h
+    native/credentialstore.cpp native/credentialstore.h
 )
 
 target_link_libraries(dreavonplugin PRIVATE
     Qt6::Core Qt6::Gui Qt6::Qml Qt6::Network Qt6::Concurrent)
 if(TARGET Qt6::DBus)
     target_link_libraries(dreavonplugin PRIVATE Qt6::DBus)
+endif()
+if(WIN32)
+    # Gerenciador de Credenciais (CredWrite, CredRead, CredDelete).
+    target_link_libraries(dreavonplugin PRIVATE advapi32)
 endif()
 
 if(MSVC)

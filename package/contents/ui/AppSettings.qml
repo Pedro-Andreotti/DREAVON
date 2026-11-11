@@ -3,7 +3,8 @@ import QtCore
 // Configurações do DREAVON fora do Plasma: mesmas chaves e padrões de config/main.xml.
 // Ficam em <AppDataLocation>/settings.ini; no Windows, com o aplicativo chamado "DREAVON",
 // isso é %APPDATA%\DREAVON\settings.ini.
-// A chave da API compatível (customApiKey) NÃO fica aqui: vai para o cofre de credenciais do sistema.
+// A chave da API compatível (customApiKey) NÃO fica aqui: vai para o cofre de credenciais do sistema;
+// este arquivo guarda só o nome do destino no cofre (customApiKeyTarget).
 Settings {
     location: StandardPaths.writableLocation(StandardPaths.AppDataLocation) + "/settings.ini"
 
@@ -17,6 +18,7 @@ Settings {
     property string defaultModel: "sonnet"
     property string defaultEffort: "medium"
     property string customApiUrl: "https://api.openai.com/v1"
+    property string customApiKeyTarget: "DREAVON/customApiKey"
     property string customModel: ""
     property string newsTopic: ""
     property string calendarUrls: ""

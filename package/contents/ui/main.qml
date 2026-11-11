@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as B
+import QtCore
 import Qt.labs.platform as Platform
 import "bridge" as Backend
 
@@ -18,6 +19,17 @@ Window {
 
     AppSettings { id: settings }
     readonly property var cfg: settings
+
+    // Chave da API compatível: no Windows fica no Gerenciador de Credenciais e o ClaudeClient a lê
+    // de lá só na hora da requisição. Em outras plataformas segue em texto puro nas configurações.
+    Backend.CredentialStore { id: credentialStore }
+    Settings { id: legacyKeySettings; location: settings.location }   // sem propriedades: só value/setValue
+    property string legacyApiKey: ""
+    function reloadLegacyKey() { if (!credentialStore.supported) legacyApiKey = String(legacyKeySettings.value("customApiKey", "")) }
+    Connections {
+        target: credentialStore
+        function onChanged() { if (claudeBackend.provider === "custom" && !claudeBackend.busy) claudeBackend.reconnect() }
+    }
     property bool layoutEditing: false
 
     // Traz a janela para a frente e põe o foco no chat.
@@ -41,7 +53,14 @@ Window {
         {text: "Reconectar ao " + claudeBackend.providerName, run: () => claudeBackend.reconnect()}
     ]
 
-    SettingsWindow { id: settingsWindow; cfg: settings }
+    SettingsWindow {
+        id: settingsWindow
+        cfg: settings
+        credentials: credentialStore
+        credentialTarget: settings.customApiKeyTarget
+        legacyKeyStore: legacyKeySettings
+        onApplied: root.reloadLegacyKey()
+    }
 
     Platform.SystemTrayIcon {
         id: tray
@@ -80,7 +99,8 @@ Window {
         id: claudeBackend
         property bool defaultsApplied: false
         customApiUrl: root.cfg.customApiUrl || "https://api.openai.com/v1"
-        customApiKey: ""  // TODO(etapa 7): ler do cofre de credenciais
+        customApiKey: credentialStore.supported ? "" : root.legacyApiKey
+        customApiKeyTarget: credentialStore.supported ? root.cfg.customApiKeyTarget : ""
         customModel: root.cfg.customModel || ""
         Component.onCompleted: {
             if (!hasSavedProvider && root.cfg.defaultProvider) provider = root.cfg.defaultProvider
@@ -221,5 +241,10 @@ Window {
     ResizeEdge { edges: Qt.LeftEdge | Qt.BottomEdge; anchors { left: parent.left; bottom: parent.bottom } width: root.grip; height: root.grip }
     ResizeEdge { edges: Qt.RightEdge | Qt.BottomEdge; anchors { right: parent.right; bottom: parent.bottom } width: root.grip; height: root.grip }
 
-    Component.onCompleted: shell.focusChat()
+    Component.onCompleted: {
+        // Migração: uma chave antiga em texto puro nas configurações vai para o cofre e sai do arquivo.
+        if (credentialStore.supported) credentialStore.migrateFromSettings(settings.location, "customApiKey", settings.customApiKeyTarget)
+        else reloadLegacyKey()
+        shell.focusChat()
+    }
 }

@@ -9,6 +9,12 @@ import QtQuick.Layouts
 Window {
     id: win
     required property var cfg
+    // Cofre de credenciais e nome do destino da chave da API (ver CredentialStore).
+    property var credentials: null
+    property string credentialTarget: ""
+    // Sem cofre (outras plataformas): a chave fica em texto puro nas configurações, como antes.
+    property var legacyKeyStore: null
+    signal applied()
     title: "Configurações"
     width: 720; height: 640
     minimumWidth: 520; minimumHeight: 420
@@ -36,14 +42,27 @@ Window {
 
     function load(page) {
         for (const key of keys) if (("cfg_" + key) in page) page["cfg_" + key] = cfg[key]
+        if ("credentials" in page) {
+            page.credentials = credentials; page.credentialTarget = credentialTarget
+            page.resetSecrets(); page.refreshKey()
+        }
+        if (legacyKeyStore && !(credentials && credentials.supported) && ("cfg_customApiKey" in page))
+            page.cfg_customApiKey = legacyKeyStore.value("customApiKey", "")
     }
     function apply() {
         for (let i = 0; i < stack.count; ++i) {
             const page = stack.itemAt(i).item
             if (!page) continue
             for (const key of keys) if (("cfg_" + key) in page) cfg[key] = page["cfg_" + key]
+            if (legacyKeyStore && !(credentials && credentials.supported) && ("cfg_customApiKey" in page))
+                legacyKeyStore.setValue("customApiKey", page.cfg_customApiKey)
         }
         cfg.sync()
+        applied()
+    }
+    onVisibleChanged: if (!visible) for (let i = 0; i < stack.count; ++i) {
+        const page = stack.itemAt(i).item
+        if (page && ("resetSecrets" in page)) page.resetSecrets()
     }
     function open(index) {
         tabs.currentIndex = index || 0

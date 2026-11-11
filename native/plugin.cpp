@@ -16,6 +16,7 @@
 #include "chathistory.h"
 #include "mediaclient.h"
 #include "networkclient.h"
+#include "credentialstore.h"
 
 class Messages : public QAbstractListModel {
     Q_OBJECT
@@ -108,6 +109,9 @@ class ClaudeClient : public QObject {
     Q_PROPERTY(bool hasSavedProvider READ hasSavedProvider CONSTANT)
     Q_PROPERTY(QString customApiUrl READ customApiUrl WRITE setCustomApiUrl NOTIFY changed)
     Q_PROPERTY(QString customApiKey READ customApiKey WRITE setCustomApiKey NOTIFY changed)
+    // Nome da chave no cofre de credenciais (ex.: "DREAVON/customApiKey"). Quando definido e
+    // customApiKey estiver vazio, a chave é lida do cofre só na hora da requisição, sem passar pelo QML.
+    Q_PROPERTY(QString customApiKeyTarget READ customApiKeyTarget WRITE setCustomApiKeyTarget NOTIFY changed)
     Q_PROPERTY(QString customModel READ customModel WRITE setCustomModel NOTIFY changed)
     Q_PROPERTY(QString antigravityExecutable MEMBER m_antigravityExecutable)
     Q_PROPERTY(QVariantList attachments READ attachments NOTIFY attachmentsChanged)
@@ -171,6 +175,7 @@ public:
     bool hasSavedProvider() const { return m_hasSavedProvider; }
     QString customApiUrl() const { return m_customApiUrl; }
     QString customApiKey() const { return m_customApiKey; }
+    QString customApiKeyTarget() const { return m_customApiKeyTarget; }
     QString customModel() const { return m_customModel; }
 
     void setCustomApiUrl(const QString &url) {
@@ -184,6 +189,18 @@ public:
         m_customApiKey = key;
         if (m_provider == "custom" && m_started && !m_busy) reconnect();
         else emit changed();
+    }
+    void setCustomApiKeyTarget(const QString &target) {
+        if (target == m_customApiKeyTarget) return;
+        m_customApiKeyTarget = target;
+        if (m_provider == "custom" && m_started && !m_busy) reconnect();
+        else emit changed();
+    }
+    // Chave que vai no cabeçalho Authorization: a da propriedade ou, se vazia, a do cofre.
+    QString effectiveApiKey() const {
+        const QString direct = m_customApiKey.trimmed();
+        if (!direct.isEmpty() || m_customApiKeyTarget.isEmpty()) return direct;
+        return CredentialStore::read(m_customApiKeyTarget).trimmed();
     }
     void setCustomModel(const QString &model) {
         if (model.trimmed() == m_customModel) return;
@@ -613,7 +630,7 @@ private:
     bool m_historyBusy=false,m_historyAppend=false,m_conversationLoading=false,m_hasSavedProvider=false;
     QString m_provider="claude";
     QString m_executable,m_antigravityExecutable,m_thread,m_model,m_effort;
-    QString m_customApiUrl, m_customApiKey, m_customModel;
+    QString m_customApiUrl, m_customApiKey, m_customApiKeyTarget, m_customModel;
     QString m_threadCwd,m_restoreThread,m_historyError;
     QString m_nativeThread, m_nativeThreadCwd, m_nativeThreadProvider;
     QString m_bubble,m_currentMessage; bool m_separator=false;
@@ -1162,8 +1179,8 @@ private:
         m_error.clear(); m_status = "Conectando"; emit changed();
         QNetworkRequest req(QUrl(base + "/models"));
         req.setTransferTimeout(8000);
-        if (!m_customApiKey.trimmed().isEmpty())
-            req.setRawHeader("Authorization", "Bearer " + m_customApiKey.trimmed().toUtf8());
+        if (const QString key = effectiveApiKey(); !key.isEmpty())
+            req.setRawHeader("Authorization", "Bearer " + key.toUtf8());
         auto *reply = m_network.get(req);
         connect(reply, &QNetworkReply::finished, this, [this, reply, base] {
             reply->deleteLater();
@@ -1222,8 +1239,8 @@ private:
 
         QNetworkRequest req(QUrl(base + "/chat/completions"));
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-        if (!m_customApiKey.trimmed().isEmpty())
-            req.setRawHeader("Authorization", "Bearer " + m_customApiKey.trimmed().toUtf8());
+        if (const QString key = effectiveApiKey(); !key.isEmpty())
+            req.setRawHeader("Authorization", "Bearer " + key.toUtf8());
         m_bubble = QUuid::createUuid().toString(); m_separator = false; m_httpBuffer.clear();
         auto *reply = m_network.post(req, QJsonDocument(QJsonObject{{"model", m_model}, {"stream", true}, {"messages", msgs}}).toJson(QJsonDocument::Compact));
         m_httpReply = reply;
@@ -1697,6 +1714,7 @@ public:
         qmlRegisterType<DashboardClient>(uri,1,0,"DashboardClient");
         qmlRegisterType<MediaClient>(uri,1,0,"MediaClient");
         qmlRegisterType<NetworkClient>(uri,1,0,"NetworkClient");
+        qmlRegisterType<CredentialStore>(uri,1,0,"CredentialStore");
     }
 };
 #include "plugin.moc"
