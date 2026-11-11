@@ -6,7 +6,8 @@ import "bridge" as Backend
 
 PlasmoidItem {
     id: root
-    readonly property var cfg: Plasmoid.configuration
+    AppSettings { id: settings }
+    readonly property var cfg: settings
     readonly property bool onDesktop: Plasmoid.formFactor === PlasmaCore.Types.Planar
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
     preferredRepresentation: onDesktop ? fullRepresentation : compactRepresentation
@@ -30,7 +31,7 @@ PlasmoidItem {
         id: claudeBackend
         property bool defaultsApplied: false
         customApiUrl: root.cfg.customApiUrl || "https://api.openai.com/v1"
-        customApiKey: root.cfg.customApiKey || ""
+        customApiKey: ""  // TODO(etapa 7): ler do cofre de credenciais
         customModel: root.cfg.customModel || ""
         Component.onCompleted: {
             if (!hasSavedProvider && root.cfg.defaultProvider) provider = root.cfg.defaultProvider
