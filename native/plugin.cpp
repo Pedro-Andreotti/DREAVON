@@ -5,6 +5,7 @@
 #include <cmath>
 #include <QGuiApplication>
 #include <QClipboard>
+#include <QIcon>
 #include <QImageReader>
 #include <QBuffer>
 #include <QNetworkAccessManager>
@@ -1891,6 +1892,13 @@ public:
         qmlRegisterType<MediaClient>(uri,1,0,"MediaClient");
         qmlRegisterType<NetworkClient>(uri,1,0,"NetworkClient");
         qmlRegisterType<CredentialStore>(uri,1,0,"CredentialStore");
+#ifdef Q_OS_WIN
+        // Aberto pelo qml.exe, o app herdaria o ícone do Qt: usa o do DREAVON em todas as janelas.
+        // baseUrl() é a pasta do plugin (package/contents/ui/bridge); o ícone fica em ../assets.
+        const QString icon = QDir(baseUrl().toLocalFile()).absoluteFilePath(QStringLiteral("../assets/dreavon.ico"));
+        if (qobject_cast<QGuiApplication *>(QCoreApplication::instance()) && QFileInfo::exists(icon))
+            QGuiApplication::setWindowIcon(QIcon(icon));
+#endif
     }
 };
 #include "plugin.moc"
