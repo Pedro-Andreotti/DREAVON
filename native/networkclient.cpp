@@ -1,18 +1,24 @@
 #include "networkclient.h"
 
-#include <QDBusConnection>
-#include <QDBusMessage>
-#include <QDBusObjectPath>
-#include <QDBusPendingCallWatcher>
-#include <QDBusPendingReply>
-#include <QDBusVariant>
 #include <QFile>
 #include <QHostAddress>
 #include <QNetworkInterface>
 #include <QTcpSocket>
 #include <functional>
 
+// O D-Bus (NetworkManager) só existe no Linux. Qt define QT_DBUS_LIB quando o módulo DBus é ligado.
+#ifdef QT_DBUS_LIB
+#include <QDBusArgument>
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusObjectPath>
+#include <QDBusPendingCallWatcher>
+#include <QDBusPendingReply>
+#include <QDBusVariant>
+#endif
+
 namespace {
+#ifdef QT_DBUS_LIB
 const QString NM = QStringLiteral("org.freedesktop.NetworkManager");
 
 QVariant unwrap(const QVariant &v) { return v.canConvert<QDBusVariant>() ? v.value<QDBusVariant>().variant() : v; }
@@ -27,6 +33,7 @@ void nmProperty(QObject *context, const QString &path, const QString &interface,
         done(reply.isError() ? QVariant() : unwrap(reply.value()));
     });
 }
+#endif
 
 bool countedInterface(const QString &name) {
     return name != "lo" && !name.startsWith("veth") && !name.startsWith("docker") && !name.startsWith("br-")
@@ -90,6 +97,7 @@ void NetworkClient::refreshConnection() {
         if (!address.isEmpty()) break;
     }
     if (address != m_address) { m_address = address; emit changed(); }
+#ifdef QT_DBUS_LIB
     nmProperty(this, "/org/freedesktop/NetworkManager", NM, "PrimaryConnection", [this](const QVariant &value) {
         const QString path = value.value<QDBusObjectPath>().path();
         if (path.isEmpty() || path == "/") {
@@ -118,6 +126,7 @@ void NetworkClient::refreshConnection() {
             });
         });
     });
+#endif
 }
 
 void NetworkClient::measureLatency() {

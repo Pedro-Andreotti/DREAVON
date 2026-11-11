@@ -3,7 +3,6 @@
 #include <QDateTime>
 #include <QSysInfo>
 #include <QThread>
-#include <QtDBus>
 #include <memory>
 #include <cmath>
 #include <QDir>
@@ -21,10 +20,15 @@
 #include <QUrlQuery>
 #include <QXmlStreamReader>
 
+// UPower, BlueZ e as notificações do freedesktop usam D-Bus, que só existe no Linux.
+// Qt define QT_DBUS_LIB quando o módulo DBus é ligado; sem ele essas funções ficam vazias.
+#ifdef QT_DBUS_LIB
+#include <QtDBus>
 using DBusInterfaces = QMap<QString, QVariantMap>;
 using DBusObjects = QMap<QDBusObjectPath, DBusInterfaces>;
 Q_DECLARE_METATYPE(DBusInterfaces)
 Q_DECLARE_METATYPE(DBusObjects)
+#endif
 
 namespace {
 QString machineName() {
@@ -60,8 +64,10 @@ QString portugueseDate(const QDate &date) {
 }
 
 DashboardClient::DashboardClient(QObject *parent) : QObject(parent) {
+#ifdef QT_DBUS_LIB
     qDBusRegisterMetaType<DBusInterfaces>();
     qDBusRegisterMetaType<DBusObjects>();
+#endif
     m_batteryTimer.setInterval(5000);
     connect(&m_batteryTimer, &QTimer::timeout, this, &DashboardClient::requestBatteries);
     connect(&m_batteryTimer, &QTimer::timeout, this, &DashboardClient::requestBatteryDetails);
@@ -119,11 +125,16 @@ void DashboardClient::setNewsTopic(const QString &topic) {
 }
 
 void DashboardClient::notify(const QString &title, const QString &body) {
+#ifdef QT_DBUS_LIB
     auto message = QDBusMessage::createMethodCall("org.freedesktop.Notifications", "/org/freedesktop/Notifications",
                                                   "org.freedesktop.Notifications", "Notify");
     message << QStringLiteral("Plasdria") << uint(0) << QStringLiteral("plasdria") << title << body
             << QStringList{} << QVariantMap{{"urgency", QVariant::fromValue<uchar>(1)}} << int(15000);
     QDBusConnection::sessionBus().asyncCall(message, 3000);
+#else
+    // TODO(Windows): notificação toast. Por enquanto, nada é exibido.
+    Q_UNUSED(title); Q_UNUSED(body);
+#endif
 }
 
 void DashboardClient::refresh() {
@@ -202,6 +213,7 @@ void DashboardClient::updateSystemDetails() {
 }
 
 void DashboardClient::requestBatteryDetails() {
+#ifdef QT_DBUS_LIB
     auto msg = QDBusMessage::createMethodCall("org.freedesktop.UPower", "/org/freedesktop/UPower/devices/DisplayDevice", "org.freedesktop.DBus.Properties", "GetAll");
     msg << "org.freedesktop.UPower.Device";
     auto *watcher = new QDBusPendingCallWatcher(QDBusConnection::systemBus().asyncCall(msg, 2500), this);
@@ -215,6 +227,8 @@ void DashboardClient::requestBatteryDetails() {
         m_systemDetails["batteryTime"] = state == 1 && toFull > 0 ? duration(toFull) + " para encher" : state == 2 && toEmpty > 0 ? duration(toEmpty) + " restantes" : QString();
         emit changed();
     });
+#endif
+    // TODO(Windows): GetSystemPowerStatus.
 }
 
 void DashboardClient::updateMetrics() {
@@ -612,6 +626,7 @@ QVariantList DashboardClient::peripheralDevices() const {
 }
 
 void DashboardClient::requestBatteries() {
+#ifdef QT_DBUS_LIB
     const auto bus = QDBusConnection::systemBus();
     auto message = QDBusMessage::createMethodCall("org.freedesktop.UPower", "/org/freedesktop/UPower", "org.freedesktop.UPower", "EnumerateDevices");
     auto *watcher = new QDBusPendingCallWatcher(bus.asyncCall(message, 2500), this);
@@ -657,4 +672,9 @@ void DashboardClient::requestBatteries() {
         }
         emit changed();
     });
+#else
+    // TODO(Windows): baterias de periféricos via Bluetooth (WinRT).
+    m_upowerDevices.clear(); m_bluetoothDevices.clear();
+    emit changed();
+#endif
 }
