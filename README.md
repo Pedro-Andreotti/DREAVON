@@ -32,6 +32,8 @@ Um widget para KDE Plasma 6 com chat do Claude, música tocando agora, rede, lem
 | **Dispositivos** | Bateria do notebook e de periféricos que publicam essa informação (UPower/BlueZ). |
 | **Notícias** | Lista de manchetes do Google News Brasil com fonte e horário, tema configurável (Tecnologia, Esportes, Economia…). |
 
+**Layout editável.** Clique no lápis no canto do widget (ou clique direito → **Editar layout**) e reorganize na mão: arraste os cartões pelo nome para outra posição ou coluna, oculte o que não usa (e traga de volta pela barra), puxe as divisões entre as colunas para mudar a largura e use **Restaurar padrão** se quiser recomeçar. O arranjo fica salvo e vale também para a ordem dos cartões nos tamanhos médio e estreito.
+
 O layout se adapta ao espaço: em telas largas, o **painel geral** fica em cima e os cartões e o chat embaixo, preenchendo todo o espaço; em tamanho médio, painel e cartões rolam à esquerda com o chat ao lado; quando estreito (como no painel do Plasma), há abas **Painel** / **Chat**.
 
 <img src="docs/screenshot-narrow.png" width="260" alt="Plasdria em modo estreito, com abas" />
@@ -41,7 +43,7 @@ O layout se adapta ao espaço: em telas largas, o **painel geral** fica em cima 
 Clique com o botão direito no widget → **Configurar Plasdria…**
 
 - **Geral** — seu nome para a saudação, cidade (busca por nome) ou detecção automática, modelo e esforço padrão do Claude e tema das notícias.
-- **Cartões** — escolha quais cartões aparecem.
+- **Cartões** — escolha quais cartões aparecem (a posição de cada um se edita no próprio widget).
 - **Aparência** — cor de destaque, opacidade do fundo e animações.
 - **Atalhos de teclado** — defina um atalho global para abrir o chat (página padrão do Plasma).
 

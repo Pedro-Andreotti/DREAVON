@@ -4,7 +4,7 @@ import "../package/contents/ui"
 import "../package/contents/ui/bridge" as Backend
 
 // Captura telas do widget fora do Plasma, com dados reais:
-//   qml6 tools/preview.qml -- <pasta-de-saída> ["pergunta ao Claude (usa Haiku)"] [--sem-rede]
+//   qml6 tools/preview.qml -- <pasta-de-saída> ["pergunta ao Claude (usa Haiku)"] [--sem-rede] [--editar]
 // --sem-rede oculta o cartão de rede (nome do Wi-Fi e IP) para capturas públicas.
 Window {
     id: win
@@ -14,6 +14,7 @@ Window {
     readonly property string outDir: positional[0] || "."
     readonly property string question: positional[1] || ""
     readonly property bool hideNetwork: args.indexOf("--sem-rede") >= 0
+    readonly property bool edit: args.indexOf("--editar") >= 0
     QtObject {
         id: cfg
         property string userName: "Pietro"
@@ -27,7 +28,7 @@ Window {
     Backend.DashboardClient { id: dash; Component.onCompleted: { setLocation("Ourinhos", -22.97889, -49.87056); start() } }
     Backend.MediaClient { id: media }
     Backend.NetworkClient { id: net }
-    Shell { id: shell; anchors.fill: parent; anchors.margins: 10; t: theme; client: client; dash: dash; media: media; net: net; cfg: cfg }
+    Shell { id: shell; editing: win.edit; anchors.fill: parent; anchors.margins: 10; t: theme; client: client; dash: dash; media: media; net: net; cfg: cfg }
 
     property int stage: 0
     function shot(name, next) { win.contentItem.grabToImage(r => { r.saveToFile(outDir + "/" + name + ".png"); console.log("SHOT", name); next() }) }

@@ -11,6 +11,7 @@ PlasmoidItem {
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
     preferredRepresentation: onDesktop ? fullRepresentation : compactRepresentation
     switchWidth: 340; switchHeight: 420
+    property bool layoutEditing: false
 
     toolTipMainText: "Plasdria"
     toolTipSubText: {
@@ -66,6 +67,11 @@ PlasmoidItem {
             onTriggered: { claudeBackend.newChat(); root.expanded = true }
         },
         PlasmaCore.Action {
+            text: root.layoutEditing ? "Concluir a edição do layout" : "Editar layout"
+            icon.name: "document-edit"
+            onTriggered: { root.layoutEditing = !root.layoutEditing; root.expanded = true }
+        },
+        PlasmaCore.Action {
             text: "Reconectar ao Claude"
             icon.name: "view-refresh"
             onTriggered: claudeBackend.reconnect()
@@ -75,7 +81,10 @@ PlasmoidItem {
     fullRepresentation: Shell {
         id: shell
         t: themeBackend; client: claudeBackend; dash: dashBackend; media: mediaBackend; net: netBackend; cfg: root.cfg
+        editing: root.layoutEditing
+        onEditRequested: on => root.layoutEditing = on
         onSaveReminders: json => root.cfg.reminders = json
+        onSaveLayout: json => root.cfg.layout = json
         Layout.minimumWidth: 340
         Layout.minimumHeight: 480
         Layout.preferredWidth: 1280

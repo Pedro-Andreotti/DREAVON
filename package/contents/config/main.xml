@@ -30,5 +30,6 @@
   </group>
   <group name="Data">
     <entry name="reminders" type="String"><default>[]</default></entry>
+    <entry name="layout" type="String"><default></default></entry>
   </group>
 </kcfg>
