@@ -1177,6 +1177,12 @@ private:
         QProcess *process = m_turnProcess;
         connect(process, &QProcess::readyReadStandardOutput, this, [this, process] { if (process == m_turnProcess) readTurn(); });
         connect(process, &QProcess::readyReadStandardError, this, [this, process] { if (process == m_turnProcess) m_turnErrors += process->readAllStandardError(); });
+#ifdef Q_OS_WIN
+        // O executável pode sumir entre a checagem e o envio: sem isto o chat ficava em "Pensando".
+        connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError e) {
+            if (e == QProcess::FailedToStart && process == m_turnProcess) { fail("Não foi possível iniciar o Codex."); killTurn(); }
+        });
+#endif
         connect(process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this, [this, process](int code, QProcess::ExitStatus) {
             if (process != m_turnProcess) { process->deleteLater(); return; }
             readTurn();
@@ -1237,6 +1243,12 @@ private:
             if (!chunk.isEmpty()) { m_status = "Respondendo"; emit changed(); appendAssistant(chunk); }
         });
         connect(process, &QProcess::readyReadStandardError, this, [this, process] { if (process == m_turnProcess) m_turnErrors += process->readAllStandardError(); });
+#ifdef Q_OS_WIN
+        // O executável pode sumir entre a checagem e o envio: sem isto o chat ficava em "Pensando".
+        connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError e) {
+            if (e == QProcess::FailedToStart && process == m_turnProcess) { fail("Não foi possível iniciar o Gemini CLI."); killTurn(); }
+        });
+#endif
         connect(process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this, [this, process](int code, QProcess::ExitStatus) {
             if (process != m_turnProcess) { process->deleteLater(); return; }
             auto p = m_turnProcess; m_turnProcess = nullptr; p->disconnect(this); p->deleteLater();
