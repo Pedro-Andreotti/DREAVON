@@ -1,12 +1,16 @@
 # Passo 2 — Casca própria para o Windows
 
+**Status: concluído em 11/11/2026** (PR #6). Registro do que foi feito, dos desvios do plano e dos testes: [diário 02](diario/02-casca-windows.md).
+
 Objetivo: abrir o painel do DREAVON numa janela Qt Quick comum, sem Plasma, com o chat e os cartões que já funcionam sem D-Bus (clima, notícias, lembretes, calendário). Neste passo também entram a troca do nome e da logo e a melhoria de segurança da chave da API.
 
 ## Decisões (confirmadas em 11/11/2026)
 1. **Casca:** janela flutuante com ícone na bandeja do sistema. Barra lateral ancorada e widget na área de trabalho ficam para depois.
-2. **Kirigami:** mantido neste passo. A troca dos ícones fica para uma etapa própria, depois que tudo abrir.
+2. **Kirigami:** o plano partia de que ele "existe para Windows" e podia ser mantido. Isso estava errado: o Kirigami é uma biblioteca do KDE, não faz parte do Qt, e os ícones dele dependem do tema Breeze. Decisão final: **substituto mínimo só para o Windows** (`windows/qml/org/kde/kirigami/`, com um plugin C++ pequeno para a propriedade `FormData`), com um subconjunto de ícones do Breeze (LGPL-3.0, aviso em `icons/COPYING-ICONS`). O QML não mudou e no Linux vale o Kirigami de verdade. Descartadas: compilar o Kirigami a partir do código (dependência pesada, risco com o Qt 6.11) e reescrever os 17 arquivos agora (deixaria o passo grande demais). A substituição definitiva do Kirigami fica para um passo próprio, e o substituto some junto.
 3. **Nome e logo:** trocar `Plasdria` por `DREAVON` no código, nos pacotes e nos recursos visuais, e usar a marca do DREAVON no lugar da logo herdada.
 4. **Segurança:** a chave da API compatível deixa de ficar em texto puro; passa para o Gerenciador de Credenciais do Windows.
+5. **Como abrir durante o desenvolvimento:** o Controle Inteligente de Aplicativos do Windows bloqueia o `dreavon.exe` sem assinatura. Decisão: abrir pelo `qml.exe` do Qt (assinado), com `windows/dreavon.qml` como ponto de entrada (`.\build-windows.ps1 -Run`), sem alterar nenhuma configuração de segurança do Windows. O `app/main.cpp` fica para o instalador. **Pendência:** o `.exe` final precisa ser assinado (certificado de assinatura de código ou Trusted Signing), senão quem tiver o Controle Inteligente ligado terá o mesmo bloqueio.
+6. **Versão:** `0.1.0` em `package/metadata.json` (a `2.0.0` era do Plasdria). O `1.0.0` fica reservado para quando o port estiver completo e houver instalador.
 
 ## Onde está a dependência do Plasma
 Levantamento do código atual (`package/contents/ui`):
@@ -26,7 +30,7 @@ O `tools/preview.qml` já abre o widget numa `Window` comum com um objeto `cfg` 
 1. **`Settings` local:** um objeto QML com as 24 chaves de `config/main.xml` e seus padrões, salvo em `%APPDATA%\DREAVON` (JSON ou `QSettings`). O `main.qml` passa a ler dele no lugar de `Plasmoid.configuration`. A chave `customApiKey` **não** entra nesse arquivo (ver etapa 7).
 2. **`main.qml` como `Window`:** sem moldura do sistema, fundo escuro com cantos arredondados, arrastável, com tamanho mínimo. Mantém o `Shell` e os clientes (`ClaudeClient`, `DashboardClient`, `MediaClient`, `NetworkClient`).
 3. **Bandeja do sistema:** `SystemTrayIcon` (Qt Labs) com mostrar/ocultar e sair, e as 4 ações do menu que hoje são `contextualActions`. Fechar a janela leva para a bandeja.
-4. **Configurações:** janela própria com as mesmas três páginas, sem o `KCM`. O Kirigami continua nos componentes.
+4. **Configurações:** janela própria com as mesmas três páginas, sem o `KCM`. O Kirigami continua nos componentes, pelo substituto do Windows.
 5. **Nome:** trocar `Plasdria` por `DREAVON` (ver "Escopo da troca de nome").
 6. **Logo e ícone:** trocar os recursos visuais herdados pela marca do DREAVON e gerar o `.ico` a partir de `docs/brand/dreavon-mark.svg`.
 7. **Segurança da chave da API:** guardar a chave no Gerenciador de Credenciais do Windows (ver "Segurança").
