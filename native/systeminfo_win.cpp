@@ -6,8 +6,14 @@
 #include <pdhmsg.h>
 #include <psapi.h>
 #include <winioctl.h>
+#include <initguid.h>   // antes do devpkey.h: define as chaves DEVPKEY_* neste arquivo
+#include <cfgmgr32.h>
+#include <devpkey.h>
+#include <devquery.h>
 #include <QHash>
+#include <QSet>
 #include <string>
+#include <vector>
 
 namespace {
 quint64 fileTimeValue(const FILETIME &t) { return (quint64(t.dwHighDateTime) << 32) | t.dwLowDateTime; }
@@ -166,6 +172,109 @@ double systemDiskTemperature() {
     }
     CloseHandle(disk);
     return cached;
+}
+
+// Nível de bateria que o Windows guarda para aparelhos Bluetooth (o mesmo de Configurações).
+// Chave NÃO documentada pela Microsoft (não está no devpkey.h); usada por várias ferramentas.
+// Fica no nó "Hands-Free" dos fones clássicos. Só leitura: se não existir, a bateria fica -1.
+DEFINE_DEVPROPKEY(DREAVON_DEVPKEY_BluetoothBattery, 0x104EA319, 0x6EE2, 0x4701, 0xBD, 0x47, 0x8D, 0xDB, 0xF4, 0x25, 0xBB, 0xE5, 2);
+
+QList<Peripheral> peripherals() {
+    using GetProps = HRESULT (WINAPI *)(DEV_OBJECT_TYPE, PCWSTR, ULONG, ULONG, const DEVPROPCOMPKEY *, PULONG, const DEVPROPERTY **);
+    using FreeProps = void (WINAPI *)(ULONG, const DEVPROPERTY *);
+    // DevGetObjectProperties está no cfgmgr32.dll, mas não no cfgmgr32.lib (só no onecore.lib).
+    static const HMODULE cfgmgr = LoadLibraryW(L"cfgmgr32.dll");
+    static const auto getProps = cfgmgr ? reinterpret_cast<GetProps>(GetProcAddress(cfgmgr, "DevGetObjectProperties")) : nullptr;
+    static const auto freeProps = cfgmgr ? reinterpret_cast<FreeProps>(GetProcAddress(cfgmgr, "DevFreeObjectProperties")) : nullptr;
+    if (!getProps || !freeProps) return {};
+
+    // 1. Nós presentes, agrupados por contêiner (um contêiner = um aparelho).
+    ULONG length = 0;
+    if (CM_Get_Device_ID_List_SizeW(&length, nullptr, CM_GETIDLIST_FILTER_PRESENT) != CR_SUCCESS || length == 0) return {};
+    std::vector<wchar_t> ids(length);
+    if (CM_Get_Device_ID_ListW(nullptr, ids.data(), length, CM_GETIDLIST_FILTER_PRESENT) != CR_SUCCESS) return {};
+    // Contêiner do próprio computador: seus componentes internos não são "dispositivos".
+    static const GUID computer = {0x00000000, 0x0000, 0x0000, {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}};
+    // Barramentos de hardware externo; contêineres só com nós de software (SWD, ROOT…) ficam de fora.
+    static const QSet<QString> physicalBuses = {"USB", "USBSTOR", "BTHENUM", "BTHLE", "BTHLEDEVICE", "BTHHFENUM"};
+    struct Info { int battery = -1; bool physical = false; bool bluetooth = false; };
+    QHash<QString, Info> containers;
+    for (const wchar_t *id = ids.data(); *id; id += wcslen(id) + 1) {
+        DEVINST node = 0;
+        if (CM_Locate_DevNodeW(&node, const_cast<DEVINSTID_W>(id), CM_LOCATE_DEVNODE_NORMAL) != CR_SUCCESS) continue;
+        GUID container; DEVPROPTYPE type = 0; ULONG size = sizeof(container);
+        if (CM_Get_DevNode_PropertyW(node, &DEVPKEY_Device_ContainerId, &type, reinterpret_cast<PBYTE>(&container), &size, 0) != CR_SUCCESS
+            || type != DEVPROP_TYPE_GUID || IsEqualGUID(container, computer)) continue;
+        wchar_t key[40];
+        StringFromGUID2(container, key, 40);
+        Info &info = containers[QString::fromWCharArray(key)];
+        const QString bus = QString::fromWCharArray(id).section('\\', 0, 0).toUpper();
+        if (physicalBuses.contains(bus)) info.physical = true;
+        if (bus.startsWith("BTH")) info.bluetooth = true;
+        BYTE level = 0; size = sizeof(level);
+        if (CM_Get_DevNode_PropertyW(node, &DREAVON_DEVPKEY_BluetoothBattery, &type, &level, &size, 0) == CR_SUCCESS
+            && type == DEVPROP_TYPE_BYTE && level <= 100) info.battery = level;
+    }
+
+    // 2. Propriedades de cada contêiner: nome, categorias, conectado, se é de rede e a bateria
+    //    documentada (System.Devices.BatteryLife / BatteryPlusCharging, do propkey.h).
+    static const DEVPROPKEY batteryLife = {{0x49CD1F76, 0x5626, 0x4B17, {0xA4, 0xE8, 0x18, 0xB4, 0xAA, 0x1A, 0x22, 0x13}}, 10};
+    static const DEVPROPKEY batteryPlusCharging = {{0x49CD1F76, 0x5626, 0x4B17, {0xA4, 0xE8, 0x18, 0xB4, 0xAA, 0x1A, 0x22, 0x13}}, 22};
+    const DEVPROPCOMPKEY keys[] = {
+        {DEVPKEY_NAME, DEVPROP_STORE_SYSTEM, nullptr},
+        {DEVPKEY_DeviceContainer_Category, DEVPROP_STORE_SYSTEM, nullptr},
+        {DEVPKEY_DeviceContainer_IsConnected, DEVPROP_STORE_SYSTEM, nullptr},
+        {DEVPKEY_DeviceContainer_IsNetworkDevice, DEVPROP_STORE_SYSTEM, nullptr},
+        {batteryLife, DEVPROP_STORE_SYSTEM, nullptr},
+        {batteryPlusCharging, DEVPROP_STORE_SYSTEM, nullptr},
+    };
+    QList<Peripheral> result;
+    for (auto it = containers.cbegin(); it != containers.cend(); ++it) {
+        if (!it->physical) continue;
+        ULONG count = 0; const DEVPROPERTY *props = nullptr;
+        const std::wstring object = it.key().toStdWString();
+        if (FAILED(getProps(DevObjectTypeDeviceContainer, object.c_str(), DevQueryFlagNone, ULONG(std::size(keys)), keys, &count, &props))) continue;
+        QString name; QStringList categories; bool connected = true, network = false;
+        int containerBattery = -1;
+        for (ULONG i = 0; i < count; ++i) {
+            const DEVPROPERTY &p = props[i];
+            if (p.Type == DEVPROP_TYPE_EMPTY || !p.Buffer) continue;
+            if (IsEqualDevPropKey(p.CompKey.Key, DEVPKEY_NAME) && p.Type == DEVPROP_TYPE_STRING)
+                name = QString::fromWCharArray(static_cast<const wchar_t *>(p.Buffer));
+            else if (IsEqualDevPropKey(p.CompKey.Key, DEVPKEY_DeviceContainer_Category) && p.Type == DEVPROP_TYPE_STRING_LIST)
+                for (auto *c = static_cast<const wchar_t *>(p.Buffer); *c; c += wcslen(c) + 1) categories << QString::fromWCharArray(c);
+            else if (IsEqualDevPropKey(p.CompKey.Key, DEVPKEY_DeviceContainer_IsConnected) && p.Type == DEVPROP_TYPE_BOOLEAN)
+                connected = *static_cast<const DEVPROP_BOOLEAN *>(p.Buffer) != DEVPROP_FALSE;
+            else if (IsEqualDevPropKey(p.CompKey.Key, DEVPKEY_DeviceContainer_IsNetworkDevice) && p.Type == DEVPROP_TYPE_BOOLEAN)
+                network = *static_cast<const DEVPROP_BOOLEAN *>(p.Buffer) != DEVPROP_FALSE;
+            else if (IsEqualDevPropKey(p.CompKey.Key, batteryLife) || IsEqualDevPropKey(p.CompKey.Key, batteryPlusCharging)) {
+                int value = -1;
+                if (p.Type == DEVPROP_TYPE_BYTE) value = *static_cast<const BYTE *>(p.Buffer);
+                else if (p.Type == DEVPROP_TYPE_UINT32) value = int(*static_cast<const ULONG *>(p.Buffer));
+                if (IsEqualDevPropKey(p.CompKey.Key, batteryLife) && value >= 0 && value <= 100) containerBattery = value;
+            }
+        }
+        freeProps(count, props);
+        if (!connected || network || name.isEmpty()) continue;
+        // Nome como referência a recurso ("@arquivo.inf,%chave%;Texto"): usa o texto depois do ";".
+        if (name.startsWith('@')) name = name.contains(';') ? name.section(';', -1) : QString();
+        if (name.trimmed().isEmpty()) continue;
+        auto has = [&categories](const char *prefix) {
+            for (const QString &c : categories) if (c.startsWith(QLatin1String(prefix), Qt::CaseInsensitive)) return true;
+            return false;
+        };
+        Peripheral device;
+        device.name = name.trimmed();
+        device.category = categories.join(',');
+        device.percent = it->battery >= 0 ? it->battery : containerBattery;
+        device.bluetooth = it->bluetooth;
+        if (has("Audio")) device.kind = QStringLiteral("Fone");
+        else if (has("Communication.Phone") || has("Phone")) device.kind = QStringLiteral("Celular");
+        else if (has("Input.Mouse") && !has("Input.Keyboard")) device.kind = QStringLiteral("Mouse");
+        else if (has("Input.Keyboard") && !has("Input.Mouse")) device.kind = QStringLiteral("Teclado");
+        result.append(device);
+    }
+    return result;
 }
 
 Power power() {

@@ -1,6 +1,7 @@
 #include "dashboardclient.h"
 
 #include <QDateTime>
+#include <QElapsedTimer>
 #include <QSysInfo>
 #include <QThread>
 #include <memory>
@@ -753,8 +754,20 @@ void DashboardClient::requestBatteries() {
         }
         emit changed();
     });
+#elif defined(Q_OS_WIN)
+    // Windows: aparelhos externos conectados (USB e Bluetooth) por CfgMgr32, os mesmos que Configurações
+    // lista. Vão todos em m_bluetoothDevices (que o peripheralDevices() já junta). Leitura a cada 15 s,
+    // não a cada ciclo de 5 s; sem bateria informada, percent = -1 e o cartão os resume em uma linha.
+    static QElapsedTimer sinceLast;
+    if (sinceLast.isValid() && sinceLast.elapsed() < 15000) return;
+    sinceLast.start();
+    QVariantList devices;
+    for (const auto &d : SystemInfoWin::peripherals())
+        devices.append(QVariantMap{{"name", d.name}, {"kind", d.kind}, {"percent", d.percent}, {"category", d.category}, {"bluetooth", d.bluetooth}});
+    m_upowerDevices.clear();
+    if (devices != m_bluetoothDevices) { m_bluetoothDevices = devices; emit changed(); }
 #else
-    // TODO(Windows): baterias de periféricos via Bluetooth (WinRT).
+    // Sem D-Bus e fora do Windows: nenhuma fonte de periféricos (como antes).
     m_upowerDevices.clear(); m_bluetoothDevices.clear();
     emit changed();
 #endif
