@@ -29,8 +29,10 @@ if(TARGET Qt6::DBus)
     target_link_libraries(dreavonplugin PRIVATE Qt6::DBus)
 endif()
 if(WIN32)
-    # Gerenciador de Credenciais (CredWrite, CredRead, CredDelete).
-    target_link_libraries(dreavonplugin PRIVATE advapi32)
+    # Gerenciador de Credenciais (CredWrite, CredRead, CredDelete), contadores PDH e
+    # GetPerformanceInfo (passo 4: sistema no Windows).
+    target_sources(dreavonplugin PRIVATE native/systeminfo_win.cpp native/systeminfo_win.h)
+    target_link_libraries(dreavonplugin PRIVATE advapi32 pdh psapi)
 endif()
 
 if(MSVC)
