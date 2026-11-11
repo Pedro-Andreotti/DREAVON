@@ -220,7 +220,7 @@ ConfigPage {
             RowLayout {
                 QQC2.TextField {
                     id: newApiKey
-                    placeholderText: page.keySaved ? "Nova chave, para substituir a atual" : "sk-... (ou defina OPENAI_API_KEY)"
+                    placeholderText: page.keySaved ? "Nova chave, para substituir a atual" : "sk-..."
                     echoMode: TextInput.Password
                     Layout.preferredWidth: Kirigami.Units.gridUnit * 13
                 }
@@ -251,7 +251,7 @@ ConfigPage {
             id: customApiKey
             visible: page.cfg_defaultProvider === "custom" && !page.vaultSupported
             Kirigami.FormData.label: "Chave da API:"
-            placeholderText: "sk-... (ou defina OPENAI_API_KEY)"
+            placeholderText: "sk-..."
             echoMode: TextInput.Password
             Layout.preferredWidth: Kirigami.Units.gridUnit * 20
         }
