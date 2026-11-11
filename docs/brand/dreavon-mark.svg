@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="DREAVON — marca"><title>DREAVON — marca</title>
+
+<g transform="translate(0,0) scale(2)">
+  <defs>
+    <radialGradient id="airis" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#bfe4ff"/><stop offset=".35" stop-color="#2f8bff"/>
+      <stop offset=".8" stop-color="#0b3fa8"/><stop offset="1" stop-color="#061a45"/>
+    </radialGradient>
+    <linearGradient id="asilver" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f1f4f9"/><stop offset=".5" stop-color="#a9b1bf"/><stop offset="1" stop-color="#e3e8f0"/>
+    </linearGradient>
+    <radialGradient id="aglow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#2f8bff" stop-opacity=".55"/><stop offset="1" stop-color="#2f8bff" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="aclip"><path d="M14,64 Q64,20 114,64 Q64,108 14,64 Z"/></clipPath>
+  </defs>
+  <circle cx="64" cy="64" r="62" fill="url(#aglow)"/>
+  <!-- moldura em runa: octógono angular -->
+  <path d="M64,3 L99,15 L121,45 V83 L99,113 L64,125 L29,113 L7,83 V45 L29,15 Z" fill="#0b0e14" stroke="url(#asilver)" stroke-width="3" stroke-linejoin="miter"/>
+  <path d="M64,12 L92,22 L112,48 V80 L92,106 L64,116 L36,106 L16,80 V48 L36,22 Z" fill="none" stroke="#2a313d" stroke-width="1.5"/>
+  <!-- entalhes de runa nos vértices -->
+  <g stroke="#2f8bff" stroke-width="3" stroke-linecap="square" fill="none">
+    <path d="M64,3 V13"/><path d="M64,125 V115"/><path d="M7,64 H17"/><path d="M121,64 H111"/>
+  </g>
+  <!-- olho -->
+  <path d="M14,64 Q64,20 114,64 Q64,108 14,64 Z" fill="#05070b" stroke="url(#asilver)" stroke-width="3" stroke-linejoin="round"/>
+  <g clip-path="url(#aclip)">
+    <circle cx="64" cy="64" r="27" fill="url(#airis)"/>
+    <circle cx="64" cy="64" r="27" fill="none" stroke="#7fc0ff" stroke-width="1.2" stroke-opacity=".7"/>
+    <g stroke="#9fd0ff" stroke-width="1" stroke-opacity=".45">
+      <path d="M64,37 V48"/><path d="M64,91 V80"/><path d="M37,64 H48"/><path d="M91,64 H80"/>
+      <path d="M45,45 L52,52"/><path d="M83,45 L76,52"/><path d="M45,83 L52,76"/><path d="M83,83 L76,76"/>
+    </g>
+    <path d="M64,34 Q73,64 64,94 Q55,64 64,34 Z" fill="#02040a"/>
+  </g>
+  <circle cx="74" cy="52" r="3.2" fill="#eaf5ff" fill-opacity=".9"/>
+</g>
+</svg>
