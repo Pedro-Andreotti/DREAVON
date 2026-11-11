@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
-// Uma mensagem do chat. Respostas do Claude aparecem formatadas (Markdown) e selecionáveis.
+// Uma mensagem do chat. Respostas da IA aparecem formatadas (Markdown) e selecionáveis.
 Item {
     id: bubble
     required property var t
@@ -10,6 +10,7 @@ Item {
     required property string speaker
     required property string body
     required property var files
+    property string assistantName: ""
     property int availableWidth: 400
     readonly property bool mine: speaker === "user"
     property bool copied: false
@@ -37,7 +38,7 @@ Item {
         RowLayout {
             visible: !bubble.mine; spacing: 6
             Image { source: "assets/mark.png"; Layout.preferredHeight: 16; Layout.preferredWidth: 14; fillMode: Image.PreserveAspectFit; smooth: true; mipmap: true }
-            Text { text: "Claude"; color: bubble.t.muted; font.pixelSize: 11; font.weight: Font.DemiBold }
+            Text { text: bubble.assistantName || bubble.client.providerName || "IA"; color: bubble.t.muted; font.pixelSize: 11; font.weight: Font.DemiBold }
             Item { Layout.fillWidth: true }
             IconButton {
                 t: bubble.t; size: 22; opacity: hover.hovered || bubble.copied ? 1 : 0

@@ -9,8 +9,12 @@
     <entry name="cityName" type="String"><default>Ourinhos</default></entry>
     <entry name="cityLatitude" type="Double"><default>-22.97889</default></entry>
     <entry name="cityLongitude" type="Double"><default>-49.87056</default></entry>
+    <entry name="defaultProvider" type="String"><default>antigravity</default></entry>
     <entry name="defaultModel" type="String"><default>sonnet</default></entry>
     <entry name="defaultEffort" type="String"><default>medium</default></entry>
+    <entry name="customApiUrl" type="String"><default>https://api.openai.com/v1</default></entry>
+    <entry name="customApiKey" type="String"><default></default></entry>
+    <entry name="customModel" type="String"><default></default></entry>
     <entry name="newsTopic" type="String"><default></default></entry>
   </group>
   <group name="Cards">

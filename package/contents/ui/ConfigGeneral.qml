@@ -11,20 +11,62 @@ KCM.SimpleKCM {
     property string cfg_cityName
     property real cfg_cityLatitude
     property real cfg_cityLongitude
+    property string cfg_defaultProvider
     property string cfg_defaultModel
     property string cfg_defaultEffort
+    property alias cfg_customApiUrl: customApiUrl.text
+    property alias cfg_customApiKey: customApiKey.text
+    property alias cfg_customModel: customModel.text
     property string cfg_newsTopic
 
     property var results: []
     property string searchError: ""
     property bool searching: false
 
-    readonly property var modelOptions: [
-        {value: "sonnet", text: "Sonnet — equilibrado (recomendado)"},
-        {value: "opus", text: "Opus — mais inteligente"},
-        {value: "fable", text: "Fable — tarefas mais difíceis"},
-        {value: "haiku", text: "Haiku — mais rápido"}
+    readonly property var providerOptions: [
+        {value: "antigravity", text: "Antigravity — Google DeepMind (agy)"},
+        {value: "claude", text: "Claude — Anthropic (claude)"},
+        {value: "codex", text: "Codex — OpenAI (codex)"},
+        {value: "gemini", text: "Gemini CLI — Google (gemini)"},
+        {value: "ollama", text: "Ollama — modelos locais (localhost:11434)"},
+        {value: "custom", text: "API Compatível — OpenAI / OpenRouter / Groq / LM Studio"}
     ]
+    readonly property var providerModelMap: ({
+        antigravity: [
+            {value: "gemini-4-argon", text: "Gemini 4 Argon — mais inteligente (recomendado)"},
+            {value: "gemini-3.8-flash", text: "Gemini 3.8 Flash — mais rápido"},
+            {value: "claude-opus-5-5", text: "Claude Opus 5.5 (Thinking)"},
+            {value: "claude-sonnet-5-5", text: "Claude Sonnet 5.5"},
+            {value: "gpt-oss-120b", text: "GPT-OSS 120B"}
+        ],
+        claude: [
+            {value: "sonnet", text: "Sonnet — equilibrado (recomendado)"},
+            {value: "opus", text: "Opus — mais inteligente"},
+            {value: "fable", text: "Fable — tarefas mais difíceis"},
+            {value: "haiku", text: "Haiku — mais rápido"}
+        ],
+        codex: [
+            {value: "gpt-5.4", text: "GPT-5.4 — principal (recomendado)"},
+            {value: "gpt-5.3-codex", text: "GPT-5.3 Codex — especializado em código"},
+            {value: "o4-mini", text: "o4-mini — raciocínio rápido"}
+        ],
+        gemini: [
+            {value: "gemini-2.5-pro", text: "Gemini 2.5 Pro — mais inteligente"},
+            {value: "gemini-2.5-flash", text: "Gemini 2.5 Flash — mais rápido"}
+        ],
+        ollama: [
+            {value: "llama3.2", text: "Llama 3.2 (detectado automaticamente no chat)"},
+            {value: "qwen2.5-coder", text: "Qwen 2.5 Coder"},
+            {value: "deepseek-r1", text: "DeepSeek R1"}
+        ],
+        custom: [
+            {value: "gpt-4o", text: "GPT-4o"},
+            {value: "gpt-4o-mini", text: "GPT-4o mini"},
+            {value: "claude-3.7-sonnet", text: "Claude 3.7 Sonnet (OpenRouter)"},
+            {value: "deepseek-chat", text: "DeepSeek V3"}
+        ]
+    })
+    readonly property var modelOptions: providerModelMap[page.cfg_defaultProvider] || providerModelMap.claude
     readonly property var effortOptions: [
         {value: "low", text: "Baixo"}, {value: "medium", text: "Médio"}, {value: "high", text: "Alto"},
         {value: "xhigh", text: "Extra alto"}, {value: "max", text: "Máximo"}
@@ -108,8 +150,18 @@ KCM.SimpleKCM {
             }
         }
 
-        Kirigami.Separator { Kirigami.FormData.isSection: true; Kirigami.FormData.label: "Claude" }
+        Kirigami.Separator { Kirigami.FormData.isSection: true; Kirigami.FormData.label: "Assistente de IA" }
 
+        QQC2.ComboBox {
+            Kirigami.FormData.label: "IA padrão:"
+            model: page.providerOptions; textRole: "text"; valueRole: "value"
+            currentIndex: page.indexOf(page.providerOptions, page.cfg_defaultProvider || "antigravity")
+            onActivated: {
+                page.cfg_defaultProvider = currentValue
+                const list = page.providerModelMap[currentValue] || []
+                if (list.length > 0) page.cfg_defaultModel = list[0].value
+            }
+        }
         QQC2.ComboBox {
             Kirigami.FormData.label: "Modelo padrão:"
             model: page.modelOptions; textRole: "text"; valueRole: "value"
@@ -118,12 +170,35 @@ KCM.SimpleKCM {
         }
         QQC2.ComboBox {
             Kirigami.FormData.label: "Esforço padrão:"
+            visible: page.cfg_defaultProvider === "antigravity" || page.cfg_defaultProvider === "claude" || page.cfg_defaultProvider === "codex"
             model: page.effortOptions; textRole: "text"; valueRole: "value"
             currentIndex: page.indexOf(page.effortOptions, page.cfg_defaultEffort)
             onActivated: page.cfg_defaultEffort = currentValue
         }
+        QQC2.TextField {
+            id: customApiUrl
+            visible: page.cfg_defaultProvider === "custom"
+            Kirigami.FormData.label: "Endpoint da API:"
+            placeholderText: "https://api.openai.com/v1"
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 20
+        }
+        QQC2.TextField {
+            id: customApiKey
+            visible: page.cfg_defaultProvider === "custom"
+            Kirigami.FormData.label: "Chave da API:"
+            placeholderText: "sk-... (ou defina OPENAI_API_KEY)"
+            echoMode: TextInput.Password
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 20
+        }
+        QQC2.TextField {
+            id: customModel
+            visible: page.cfg_defaultProvider === "custom"
+            Kirigami.FormData.label: "ID do modelo (opcional):"
+            placeholderText: "Ex.: anthropic/claude-3.7-sonnet, llama-3.3-70b-versatile"
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 20
+        }
         QQC2.Label {
-            text: "Mais esforço deixa as respostas mais cuidadosas, porém mais lentas e consome mais cota."
+            text: "Você pode alternar entre Antigravity, Claude e outras IAs diretamente no cabeçalho do chat ou com /ia."
             wrapMode: Text.Wrap; opacity: 0.7
             Layout.preferredWidth: Kirigami.Units.gridUnit * 22
         }

@@ -1,6 +1,7 @@
 #include "../native/chathistory.h"
 
 #include <QCoreApplication>
+#include <QDir>
 #include <QFile>
 #include <QJsonDocument>
 #include <QTemporaryDir>
@@ -100,5 +101,34 @@ int main(int argc, char **argv) {
     check(ChatHistory::summary(thread, "/tmp/pragus").value("source") == "Pragus", "Pragus workspace classification");
     thread.insert("cwd", "/tmp/project"); thread.insert("source", "cli");
     check(ChatHistory::summary(thread, "/tmp/pragus").value("source") == "CLI", "CLI classification");
+
+    // Antigravity transcript parsing
+    const QString agyRoot = directory.filePath("antigravity");
+    qputenv("ANTIGRAVITY_CONFIG_DIR", agyRoot.toUtf8());
+    const QString agyLogsDir = agyRoot + "/brain/agy-conv-1/.system_generated/logs";
+    QDir().mkpath(agyLogsDir);
+    QDir().mkpath(agyRoot + "/annotations");
+    QDir().mkpath(agyRoot + "/conversations");
+    QFile pbFile(agyRoot + "/conversations/agy-conv-1.pb");
+    check(pbFile.open(QIODevice::WriteOnly), "create agy pb"); pbFile.write("ok"); pbFile.close();
+    QFile annFile(agyRoot + "/annotations/agy-conv-1.pbtxt");
+    check(annFile.open(QIODevice::WriteOnly), "create agy annotation"); annFile.write("title:\" Conversa Antigravity \"\n"); annFile.close();
+    const QString agyTranscriptPath = agyLogsDir + "/transcript.jsonl";
+    QFile agyTranscript(agyTranscriptPath);
+    check(agyTranscript.open(QIODevice::WriteOnly), "create agy transcript");
+    agyTranscript.write("{\"step_index\":0,\"type\":\"USER_INPUT\",\"status\":\"DONE\",\"content\":\"<USER_REQUEST>\\n[Instruções de contexto: responda em pt]\\n\\nOlá Antigravity\\n</USER_REQUEST>\"}\n");
+    agyTranscript.write("{\"step_index\":1,\"type\":\"PLANNER_RESPONSE\",\"status\":\"DONE\",\"content\":\"Olá! Como posso ajudar?\"}\n");
+    agyTranscript.close();
+
+    const auto agySummary = ChatHistory::antigravitySessionSummary(agyTranscriptPath, "/tmp/plasdria");
+    check(agySummary.value("id") == "agy-conv-1", "Antigravity session ID parsed");
+    check(agySummary.value("title") == "Conversa Antigravity", "Antigravity annotation title parsed");
+    check(agySummary.value("source") == "Pragus", "Antigravity Pragus session source");
+    const auto agyMsgs = ChatHistory::antigravitySessionMessages(agyTranscriptPath);
+    check(agyMsgs.size() == 2, "Antigravity user and planner messages extracted");
+    check(agyMsgs.first().toObject().value("body") == "Olá Antigravity", "Antigravity internal instructions stripped from user bubble");
+    check(agyMsgs.last().toObject().value("body") == "Olá! Como posso ajudar?", "Antigravity planner response preserved");
+    check(agyMsgs.last().toObject().value("assistantName") == "Antigravity", "Antigravity assistantName role set");
+
     std::puts("ChatHistory checks passed");
 }

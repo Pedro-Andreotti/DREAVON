@@ -16,7 +16,7 @@ PlasmoidItem {
     toolTipMainText: "Plasdria"
     toolTipSubText: {
         const used = claudeBackend.fiveHourUsed
-        return "Claude · " + claudeBackend.status + (used >= 0 ? " · " + Math.round(100 - used) + "% da cota de 5h livre" : "")
+        return claudeBackend.providerName + " · " + claudeBackend.status + (used >= 0 ? " · " + Math.round(100 - used) + "% da cota de 5h livre" : "")
     }
 
     Theme {
@@ -29,7 +29,13 @@ PlasmoidItem {
     Backend.ClaudeClient {
         id: claudeBackend
         property bool defaultsApplied: false
-        Component.onCompleted: start()
+        customApiUrl: root.cfg.customApiUrl || "https://api.openai.com/v1"
+        customApiKey: root.cfg.customApiKey || ""
+        customModel: root.cfg.customModel || ""
+        Component.onCompleted: {
+            if (!hasSavedProvider && root.cfg.defaultProvider) provider = root.cfg.defaultProvider
+            start()
+        }
         onChanged: {
             // Modelo e esforço das configurações valem ao iniciar; trocas no chat valem até reiniciar.
             if (defaultsApplied || !ready) return
@@ -54,6 +60,8 @@ PlasmoidItem {
     onLocationKeyChanged: applyLocation()
     readonly property string newsTopic: cfg.newsTopic || ""
     onNewsTopicChanged: dashBackend.setNewsTopic(newsTopic)
+    readonly property string defaultProviderCfg: cfg.defaultProvider || "antigravity"
+    onDefaultProviderCfgChanged: if (!claudeBackend.busy) claudeBackend.provider = defaultProviderCfg
     readonly property string modelKey: cfg.defaultModel + "|" + cfg.defaultEffort
     onModelKeyChanged: if (claudeBackend.ready && !claudeBackend.busy) applyModelDefaults()
 
@@ -67,12 +75,17 @@ PlasmoidItem {
             onTriggered: { claudeBackend.newChat(); root.expanded = true }
         },
         PlasmaCore.Action {
+            text: "Alternar IA (" + claudeBackend.providerName + ")"
+            icon.name: "Synchronize"
+            onTriggered: { claudeBackend.nextProvider(); root.expanded = true }
+        },
+        PlasmaCore.Action {
             text: root.layoutEditing ? "Concluir a edição do layout" : "Editar layout"
             icon.name: "document-edit"
             onTriggered: { root.layoutEditing = !root.layoutEditing; root.expanded = true }
         },
         PlasmaCore.Action {
-            text: "Reconectar ao Claude"
+            text: "Reconectar ao " + claudeBackend.providerName
             icon.name: "view-refresh"
             onTriggered: claudeBackend.reconnect()
         }

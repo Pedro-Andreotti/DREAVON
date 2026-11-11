@@ -19,7 +19,10 @@ class ChatClientTest : public QObject {
         component.setData("import QtQml\nimport \"bridge\" as Backend\nBackend.ClaudeClient {}\n", base);
         QObject *client = component.create();
         if (!client) qWarning() << component.errors();
-        if (client) client->setProperty("executable", QStringLiteral(PRAGUS_PROJECT_ROOT) + "/tests/fake_claude.py");
+        if (client) {
+            client->setProperty("executable", QStringLiteral(PRAGUS_PROJECT_ROOT) + "/tests/fake_claude.py");
+            client->setProperty("antigravityExecutable", QStringLiteral(PRAGUS_PROJECT_ROOT) + "/tests/fake_agy.py");
+        }
         return client;
     }
     void startClient() {
@@ -106,11 +109,13 @@ private slots:
         m_client.reset(); m_engine.reset();
         QDir(m_data.path() + "/data").removeRecursively();
         QDir(m_data.path() + "/claude").removeRecursively();
+        QDir(m_data.path() + "/antigravity").removeRecursively();
         m_project = m_data.path() + "/projeto";
         QVERIFY(QDir().mkpath(m_project));
         m_log = m_data.path() + "/rpc.jsonl";
         qputenv("XDG_DATA_HOME", (m_data.path() + "/data").toUtf8());
         qputenv("CLAUDE_CONFIG_DIR", (m_data.path() + "/claude").toUtf8());
+        qputenv("ANTIGRAVITY_CONFIG_DIR", (m_data.path() + "/antigravity").toUtf8());
         qputenv("PRAGUS_TEST_RPC_LOG", m_log.toUtf8());
         qunsetenv("PRAGUS_FAKE_LOGGED_OUT");
         resetLog();
@@ -300,6 +305,53 @@ private slots:
         QVERIFY(send("Oi"));
         QTRY_VERIFY_WITH_TIMEOUT(!flag("busy"), 10000);
         QVERIFY(!turnArgs().last()["argv"].toArray().contains("--effort"));
+    }
+    void switchBetweenClaudeAndAntigravityKeepsContextAndUpdatesQuota() {
+        // Começa no Claude, faz uma pergunta e alterna para o Antigravity mantendo a conversa na tela.
+        QCOMPARE(text("provider"), QString("claude"));
+        QCOMPARE(text("providerName"), QString("Claude"));
+        QVERIFY(send("Meu projeto é o Plasdria"));
+        QTRY_VERIFY_WITH_TIMEOUT(!flag("busy"), 10000);
+        QCOMPARE(messages()->rowCount(), 2);
+        QCOMPARE(messages()->data(messages()->index(1, 0), Qt::UserRole + 5).toString(), QString("Claude"));
+
+        // Alterna para o Antigravity via propriedade ou comando /ia
+        m_client->setProperty("provider", QString("antigravity"));
+        QTRY_VERIFY_WITH_TIMEOUT(flag("ready"), 10000);
+        QTRY_VERIFY_WITH_TIMEOUT(!flag("historyBusy"), 5000);
+        QCOMPARE(text("provider"), QString("antigravity"));
+        QCOMPARE(text("providerName"), QString("Antigravity"));
+        QCOMPARE(text("model"), QString("gemini-4-argon"));
+        QCOMPARE(m_client->property("efforts").toStringList(), QStringList({"low", "medium", "high"}));
+        // Cota do grupo Gemini 4 Argon (85% livre -> 15% usado em 5h, 75% livre -> 25% usado na semana)
+        QTRY_COMPARE_WITH_TIMEOUT(m_client->property("fiveHourUsed").toDouble(), 15.0, 10000);
+        QCOMPARE(m_client->property("weeklyUsed").toDouble(), 25.0);
+
+        // Mudar para modelo Claude no Antigravity atualiza a cota para o grupo Claude & GPT (60% livre -> 40% usado)
+        m_client->setProperty("model", QString("claude-sonnet-5-5"));
+        QCOMPARE(m_client->property("fiveHourUsed").toDouble(), 40.0);
+        QCOMPARE(m_client->property("weeklyUsed").toDouble(), 50.0);
+        m_client->setProperty("model", QString("gemini-4-argon"));
+
+        // A conversa anterior do Claude continua visível e é enviada como contexto ao continuar no Antigravity
+        QCOMPARE(messages()->rowCount(), 2);
+        QVERIFY(send("Continue com você"));
+        QTRY_VERIFY_WITH_TIMEOUT(!flag("busy"), 10000);
+        QCOMPARE(messages()->rowCount(), 4);
+        QVERIFY(allBodies().endsWith("Antigravity: Continue com você"));
+        QCOMPARE(messages()->data(messages()->index(3, 0), Qt::UserRole + 5).toString(), QString("Antigravity"));
+
+        // Verifica que o histórico da conversa anterior foi enviado no stdin do agy
+        QJsonArray agyContent;
+        for (const auto &row : entries("agy_stdin")) {
+            const auto msg = row["agy_stdin"].toObject();
+            if (msg["event"] == "user") agyContent = msg["message"].toObject()["content"].toArray();
+        }
+        bool hadImportedContext = false;
+        for (const auto &item : agyContent) {
+            if (item.toObject()["text"].toString().contains("pragus-imported-history")) hadImportedContext = true;
+        }
+        QVERIFY(hadImportedContext);
     }
 };
 

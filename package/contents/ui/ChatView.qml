@@ -4,7 +4,7 @@ import QtQuick.Controls.Basic as B
 import QtQuick.Dialogs
 import org.kde.kirigami as Kirigami
 
-// Chat com o Claude: cabeçalho com modelo e cotas, mensagens, anexos e campo de envio.
+// Chat de IA (Antigravity, Claude, Codex, Gemini, Ollama, API Compatível): cabeçalho com seletor de IA, modelo e cotas, mensagens, anexos e campo de envio.
 Rectangle {
     id: chat
     required property var t
@@ -56,7 +56,62 @@ Rectangle {
             }
             ColumnLayout {
                 spacing: 0; Layout.fillWidth: true
-                Text { text: "Claude"; color: chat.t.ink; font.pixelSize: 15; font.weight: Font.DemiBold }
+                Rectangle {
+                    id: providerBtn
+                    implicitWidth: providerRow.implicitWidth + 10; implicitHeight: 22; radius: 7
+                    color: (providerHover.hovered || providerMenu.opened) && !chat.client.busy ? chat.t.cardRaised : "transparent"
+                    Row {
+                        id: providerRow; anchors.verticalCenter: parent.verticalCenter; x: 4; spacing: 5
+                        Text { text: chat.client.providerName; color: chat.t.ink; font.pixelSize: 15; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                        Kirigami.Icon { source: "arrow-down"; width: 10; height: 10; isMask: true; color: chat.t.muted; anchors.verticalCenter: parent.verticalCenter }
+                    }
+                    HoverHandler { id: providerHover; cursorShape: chat.client.busy ? Qt.ArrowCursor : Qt.PointingHandCursor }
+                    TapHandler { enabled: !chat.client.busy; onTapped: providerMenu.opened ? providerMenu.close() : providerMenu.open() }
+                    B.ToolTip.visible: providerHover.hovered && !providerMenu.opened
+                    B.ToolTip.text: "Alternar IA (Antigravity, Claude e outras)"
+                    B.ToolTip.delay: 500
+
+                    B.Popup {
+                        id: providerMenu
+                        y: providerBtn.height + 4
+                        padding: 5
+                        width: 245
+                        background: Rectangle { color: chat.t.cardRaised; radius: 11; border.color: chat.t.border }
+                        contentItem: Column {
+                            spacing: 2
+                            Repeater {
+                                model: chat.client.providers
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    width: providerMenu.width - 10; height: 38; radius: 8
+                                    color: pItemHover.hovered ? chat.t.accentSoft : "transparent"
+                                    RowLayout {
+                                        anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; spacing: 8
+                                        Rectangle {
+                                            width: 7; height: 7; radius: 4
+                                            color: modelData.id === chat.client.provider ? chat.t.accent : (modelData.available ? chat.t.good : chat.t.faint)
+                                        }
+                                        ColumnLayout {
+                                            spacing: 0; Layout.fillWidth: true
+                                            Text {
+                                                text: modelData.name; font.pixelSize: 12
+                                                color: modelData.id === chat.client.provider ? chat.t.accent : chat.t.ink
+                                                font.weight: modelData.id === chat.client.provider ? Font.DemiBold : Font.Medium
+                                                elide: Text.ElideRight; Layout.fillWidth: true
+                                            }
+                                            Text {
+                                                text: modelData.subtitle || ""; font.pixelSize: 10
+                                                color: chat.t.muted; elide: Text.ElideRight; Layout.fillWidth: true
+                                            }
+                                        }
+                                    }
+                                    HoverHandler { id: pItemHover; cursorShape: Qt.PointingHandCursor }
+                                    TapHandler { onTapped: { providerMenu.close(); chat.client.provider = modelData.id } }
+                                }
+                            }
+                        }
+                    }
+                }
                 RowLayout {
                     spacing: 5
                     Rectangle { width: 6; height: 6; radius: 3; color: chat.client.error ? chat.t.bad : chat.client.ready ? chat.t.good : chat.t.warn }
@@ -84,6 +139,7 @@ Rectangle {
 
         // Cotas
         RowLayout {
+            visible: chat.client.hasQuota
             Layout.fillWidth: true; spacing: 14
             Repeater {
                 model: [
@@ -244,7 +300,7 @@ Rectangle {
                     Layout.fillWidth: true; Layout.fillHeight: true
                     B.TextArea {
                         id: input
-                        placeholderText: chat.client.ready ? "Pergunte ao Claude…" : "Conectando ao Claude…"
+                        placeholderText: chat.client.ready ? "Pergunte ao " + chat.client.providerName + "…" : "Conectando ao " + chat.client.providerName + "…"
                         placeholderTextColor: chat.t.faint
                         color: chat.t.ink; font.pixelSize: 13; wrapMode: TextEdit.Wrap
                         selectionColor: chat.t.accentLine

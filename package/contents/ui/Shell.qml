@@ -32,7 +32,7 @@ Item {
 
     // ── Arranjo dos cartões ────────────────────────────────────────────────
     readonly property var allIds: ["system", "devices", "network", "chat", "media", "calendar", "reminders", "news"]
-    readonly property var names: ({system: "Sistema", devices: "Dispositivos", network: "Rede", chat: "Chat com o Claude",
+    readonly property var names: ({system: "Sistema", devices: "Dispositivos", network: "Rede", chat: "Chat · " + shell.client.providerName,
                                    media: "Música", calendar: "Calendário", reminders: "Lembretes", news: "Notícias"})
     readonly property var defaultCols: [["system", "devices", "network"], ["chat"], ["media", "calendar"], ["reminders", "news"]]
     readonly property var defaultWeights: [0.95, 1.35, 1, 1]

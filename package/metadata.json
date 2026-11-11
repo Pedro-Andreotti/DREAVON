@@ -2,7 +2,7 @@
   "KPlugin": {
     "Id": "local.plasdria",
     "Name": "Plasdria",
-    "Description": "Assistente Claude, música, rede, lembretes, clima e sistema em um painel.",
+    "Description": "Chat com Antigravity, Claude e outras IAs, música, rede, lembretes, clima e sistema em um painel.",
     "Icon": "plasdria",
     "Category": "Online Services",
     "Version": "2.0.0",

@@ -138,11 +138,18 @@ Rectangle {
 
             Tile {
                 image: "assets/mark.png"
-                label: "Claude"
+                label: hero.client.providerName
                 readonly property real free: hero.client.fiveHourUsed < 0 ? -1 : 100 - hero.client.fiveHourUsed
-                value: free < 0 ? hero.client.status : Math.round(free) + "% livre (5h)"
+                value: free < 0 ? (hero.client.modelName || hero.client.status) : Math.round(free) + "% livre (5h)"
                 valueColor: free < 0 ? hero.t.ink : hero.t.levelColor(free)
-                detail: { hero.now; const r = hero.until(hero.client.fiveHourReset); return (r ? "renova em " + r : "") + (hero.client.weeklyUsed >= 0 ? (r ? " · " : "") + "semana " + Math.round(100 - hero.client.weeklyUsed) + "%" : "") }
+                detail: {
+                    hero.now
+                    const r = hero.until(hero.client.fiveHourReset)
+                    const q = (r ? "renova em " + r : "") + (hero.client.weeklyUsed >= 0 ? (r ? " · " : "") + "semana " + Math.round(100 - hero.client.weeklyUsed) + "%" : "")
+                    return q || (hero.client.plan ? hero.client.status + " · " + hero.client.plan : "Clique para alternar IA")
+                }
+                clickable: !hero.client.busy
+                onActivated: hero.client.nextProvider()
             }
             Tile {
                 icon: "view-task-symbolic"

@@ -1,9 +1,10 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as B
+import QtQuick.Dialogs
 import org.kde.kirigami as Kirigami
 
-// Conversas salvas do Claude Code, com busca. Fecha ao escolher uma.
+// Conversas salvas (Antigravity, Claude, Codex), com busca e importação. Fecha ao escolher uma.
 Rectangle {
     id: overlay
     required property var t
@@ -33,7 +34,8 @@ Rectangle {
     ColumnLayout {
         anchors.fill: parent; anchors.margins: 12; spacing: 8
         RowLayout {
-            Text { text: "Conversas"; color: overlay.t.ink; font.pixelSize: 15; font.weight: Font.DemiBold; Layout.fillWidth: true }
+            Text { text: "Conversas · " + overlay.client.providerName; color: overlay.t.ink; font.pixelSize: 15; font.weight: Font.DemiBold; Layout.fillWidth: true }
+            IconButton { t: overlay.t; icon: "document-open"; tip: "Importar conversa de arquivo"; onClicked: importDialog.open() }
             IconButton { t: overlay.t; icon: "view-refresh"; tip: "Atualizar"; onClicked: overlay.client.refreshHistory() }
             IconButton { t: overlay.t; icon: "window-close"; tip: "Fechar"; onClicked: overlay.close() }
         }
@@ -88,5 +90,12 @@ Rectangle {
                 color: overlay.t.faint; font.pixelSize: 12
             }
         }
+    }
+
+    FileDialog {
+        id: importDialog
+        title: "Importar conversa (.jsonl, .json, .md)"
+        fileMode: FileDialog.OpenFile
+        onAccepted: overlay.client.importConversation(selectedFile)
     }
 }

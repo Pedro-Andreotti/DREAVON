@@ -4,15 +4,16 @@
 
 **Seu assistente, sua música, sua rede e seu dia. Na área de trabalho.**
 
-Um widget para KDE Plasma 6 com chat do Claude, música tocando agora, rede, lembretes, clima, notícias e monitoramento do sistema — em um painel escuro, responsivo e configurável.
+Um widget para KDE Plasma 6 com chat integrado ao **Antigravity**, **Claude** e outras IAs (**Codex**, **Gemini CLI**, **Ollama** e **APIs compatíveis com OpenAI**), música tocando agora, rede, lembretes, clima, notícias e monitoramento do sistema — em um painel escuro, responsivo e configurável.
 
 ![KDE Plasma 6](https://img.shields.io/badge/KDE-Plasma%206-1D99F3?style=flat-square)
 ![Qt 6](https://img.shields.io/badge/Qt-6-41CD52?style=flat-square)
 ![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C?style=flat-square)
+![Antigravity](https://img.shields.io/badge/Google%20DeepMind-Antigravity-4285F4?style=flat-square)
 ![Claude Code](https://img.shields.io/badge/Claude-Code-D97757?style=flat-square)
 ![Licença MIT](https://img.shields.io/badge/Licen%C3%A7a-MIT-a4a5b0?style=flat-square)
 
-<img src="docs/screenshot.png" width="900" alt="Plasdria em tela larga: relógio, clima, sistema, chat com o Claude, música, lembretes e notícias" />
+<img src="docs/screenshot.png" width="900" alt="Plasdria em tela larga: relógio, clima, sistema, chat de IA, música, lembretes e notícias" />
 
 </div>
 
@@ -20,10 +21,10 @@ Um widget para KDE Plasma 6 com chat do Claude, música tocando agora, rede, lem
 
 | Cartão | Detalhes |
 | --- | --- |
-| **Painel geral** | A base do widget: logo do Plasdria, horário, saudação, data e clima resumido (temperatura, máxima/mínima, cidade e condição). Ao lado, um resumo do que importa agora: cota do Claude, lembretes pendentes, bateria, internet, música tocando (clique para pausar) e uso do computador. |
+| **Painel geral** | A base do widget: logo do Plasdria, horário, saudação, data e clima resumido (temperatura, máxima/mínima, cidade e condição). Ao lado, um resumo do que importa agora: cota da IA ativa (clique para alternar entre IAs), lembretes pendentes, bateria, internet, música tocando (clique para pausar) e uso do computador. |
 | **Rodapé do clima** | Detalhes de hoje (sensação, umidade, vento, chuva, UV e sol), as próximas horas e a semana, com chance de chuva. |
-| **Chat com o Claude** | Respostas em tempo real e formatadas (negrito, listas, código), texto selecionável e botão de copiar. Escolha de modelo (Opus, Sonnet, Fable, Haiku) e de esforço. Anexe imagens e arquivos pelo clipe ou arrastando para o chat. Histórico com busca para retomar conversas do Claude Code (Desktop, CLI e IDE). |
-| **Cotas** | Barras da cota de 5 horas e semanal, com o tempo até renovar. O ícone do painel mostra a cota de 5 h em um anel. |
+| **Chat multi-IA** | Alterne a qualquer momento entre **Antigravity** (`agy`), **Claude** (`claude`), **Codex** (`codex`), **Gemini CLI** (`gemini`), **Ollama** (modelos locais em `localhost:11434`) e **API Compatível** (OpenAI, OpenRouter, Groq, DeepSeek, LM Studio) pelo seletor no topo do chat ou com `/ia <nome>`. Se trocar de IA no meio de uma conversa, o histórico na tela é mantido e enviado como contexto para a outra IA continuar de onde parou. Respostas em tempo real e formatadas (Markdown), escolha de modelo e nível de esforço, anexos de imagens/arquivos e histórico com busca e importação de conversas. |
+| **Cotas** | Barras da cota de 5 horas e semanal para Antigravity (separadas por família de modelo: Gemini 4 Argon, Gemini e Claude/GPT) e Claude Code, com o tempo até renovar. O ícone do painel mostra a cota de 5 h em um anel. |
 | **Música** | Qualquer player compatível com MPRIS (Spotify, YouTube no navegador, VLC, Elisa…): capa, título, artista, barra de progresso clicável, tocar/pausar, anterior, próxima, aleatório, repetir e volume. O Spotify tem prioridade e um botão para abrir. A última música fica lembrada com a capa guardada: com o player fechado ou sem internet ela continua aparecendo, e um clique abre o Spotify e retoma do ponto em que parou. |
 | **Rede** | Nome da rede, sinal do Wi-Fi, IP local, latência e gráfico de download/upload em tempo real. |
 | **Lembretes** | Lista rápida com marcar como feito, remover e limpar concluídos. Fica salva nas configurações do widget. |
@@ -42,7 +43,7 @@ O layout se adapta ao espaço: em telas largas, o **painel geral** fica em cima 
 
 Clique com o botão direito no widget → **Configurar Plasdria…**
 
-- **Geral** — seu nome para a saudação, cidade (busca por nome) ou detecção automática, modelo e esforço padrão do Claude e tema das notícias.
+- **Geral** — seu nome para a saudação, cidade (busca por nome) ou detecção automática, IA padrão (Antigravity, Claude, Codex, Gemini CLI, Ollama ou API Compatível), modelo e esforço padrão, endpoint/chave para API compatível e tema das notícias.
 - **Cartões** — escolha quais cartões aparecem (a posição de cada um se edita no próprio widget).
 - **Aparência** — cor de destaque, opacidade do fundo e animações.
 - **Atalhos de teclado** — defina um atalho global para abrir o chat (página padrão do Plasma).
@@ -96,7 +97,7 @@ Pela linha de comando: `./build.sh`, `./install.sh`, `bash tests/run.sh` e `qml6
 | --- | --- |
 | Interface | QML / Qt Quick, Kirigami (ícones e página de configurações) |
 | Núcleo | C++17, Qt Core, Network, D-Bus e Concurrent |
-| Assistente | Claude Code em modo `-p` com stream-json pela entrada/saída padrão |
+| Assistente | Antigravity (`agy`), Claude Code (`claude`), Codex (`codex`), Gemini CLI (`gemini`), Ollama (`/api/chat`) e APIs compatíveis com OpenAI (`/v1/chat/completions`) |
 | Música | MPRIS via D-Bus |
 | Rede | `/proc/net/dev`, NetworkManager via D-Bus |
 | Sistema e baterias | `/proc`, `/sys` (hwmon), UPower e BlueZ; `nvidia-smi` quando disponível |
@@ -105,9 +106,9 @@ Pela linha de comando: `./build.sh`, `./install.sh`, `bash tests/run.sh` e `qml6
 
 ## Dados e privacidade
 
-- O widget usa o login do Claude Code; não há chaves de API no código.
-- As conversas ficam no Claude Code (`~/.claude/projects`). O Plasdria guarda só o estado de recuperação em `~/.local/share/plasdria/chat-state.json`, privado do usuário.
-- **Perguntas, anexos e contexto enviados são processados pelo Claude.** O widget roda sem plugins, hooks ou servidores MCP do usuário e só libera ferramentas de leitura e busca (`Read`, `Glob`, `Grep`, `WebSearch`, `WebFetch`): não altera arquivos nem executa comandos.
+- O widget usa o login de cada CLI (Antigravity, Claude Code, Codex, Gemini CLI); não há chaves de API no código. Só a **API Compatível** usa uma chave, que você informa nas configurações: ela fica no arquivo de configuração do Plasma, na sua conta de usuário, e é enviada apenas ao endereço que você definir (prefira `https://`).
+- As conversas ficam nos próprios CLIs (por exemplo `~/.claude/projects` e `~/.gemini/antigravity-cli`). O Plasdria guarda só o estado de recuperação em `~/.local/share/plasdria/chat-state.json`, privado do usuário.
+- **Perguntas, anexos e contexto enviados são processados pela IA escolhida** (e, ao trocar de IA no meio da conversa, o histórico na tela é reenviado como contexto para a nova). Com o Claude, o widget roda sem plugins, hooks ou servidores MCP do usuário e só libera ferramentas de leitura e busca (`Read`, `Glob`, `Grep`, `WebSearch`, `WebFetch`); nos demais, pedidos de permissão extra são recusados e o widget não usa opções que aprovam tudo automaticamente. O Ollama roda localmente.
 - A última música tocada fica em `~/.local/share/plasdria/media.json` e as capas em `~/.cache/plasdria/art` (no máximo 150).
 - Clima, cidades e notícias fazem consultas HTTPS. Com a cidade definida nas configurações, a localização por IP não é consultada.
 - A latência é medida abrindo uma conexão com `www.google.com:443` a cada 20 segundos.
