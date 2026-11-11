@@ -45,3 +45,22 @@ foreach(config Debug Release RelWithDebInfo MinSizeRel)
         LIBRARY_OUTPUT_DIRECTORY_${config_upper} "${bridge_dir}"
         RUNTIME_OUTPUT_DIRECTORY_${config_upper} "${bridge_dir}")
 endforeach()
+
+# Substituto mínimo do Kirigami, só no Windows (o Linux usa o Kirigami do KDE).
+# O plugin fica ao lado do qmldir em windows/qml/org/kde/kirigami.
+if(WIN32)
+    add_library(kirigamishim MODULE native/kirigamishim/kirigamishim.cpp)
+    target_link_libraries(kirigamishim PRIVATE Qt6::Core Qt6::Qml)
+    if(MSVC)
+        target_compile_options(kirigamishim PRIVATE /utf-8)
+    endif()
+    set(kirigami_dir "${CMAKE_CURRENT_SOURCE_DIR}/windows/qml/org/kde/kirigami")
+    set_target_properties(kirigamishim PROPERTIES PREFIX ""
+        LIBRARY_OUTPUT_DIRECTORY "${kirigami_dir}" RUNTIME_OUTPUT_DIRECTORY "${kirigami_dir}")
+    foreach(config Debug Release RelWithDebInfo MinSizeRel)
+        string(TOUPPER "${config}" config_upper)
+        set_target_properties(kirigamishim PROPERTIES
+            LIBRARY_OUTPUT_DIRECTORY_${config_upper} "${kirigami_dir}"
+            RUNTIME_OUTPUT_DIRECTORY_${config_upper} "${kirigami_dir}")
+    endforeach()
+endif()
