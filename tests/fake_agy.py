@@ -51,17 +51,14 @@ def main():
         if os.environ.get("PRAGUS_FAKE_LOGGED_OUT"):
             print("Error: not logged in. Run agy auth login", file=sys.stderr)
             return 1
-        print(
-            "Available models:\n"
-            "  gemini-4-argon-high *            Gemini 4 Argon (High)\n"
-            "  gemini-4-argon-low               Gemini 4 Argon (Low)\n"
-            "  gemini-4-argon-medium            Gemini 4 Argon (Medium)\n"
-            "  gemini-3.8-flash-high            Gemini 3.8 Flash (High)\n"
-            "  gemini-3.8-flash-low             Gemini 3.8 Flash (Low)\n"
-            "  gemini-3.8-flash-medium          Gemini 3.8 Flash (Medium)\n"
-            "  claude-sonnet-5-5                Claude Sonnet 5.5\n"
-            "  gpt-oss-120b-medium              GPT-OSS 120B (Medium)\n"
-        )
+        # Mesmo formato do agy real: id e nome separados por TAB; o aviso vai para o stderr.
+        print("Fetching available models...", file=sys.stderr)
+        for row in [("gemini-4-argon-medium", "Gemini 4 Argon (Medium)"), ("gemini-4-argon-high", "Gemini 4 Argon (High)"),
+                    ("gemini-4-argon-low", "Gemini 4 Argon (Low)"), ("gemini-3.8-flash-high", "Gemini 3.8 Flash (High)"),
+                    ("gemini-3.8-flash-medium", "Gemini 3.8 Flash (Medium)"), ("gemini-3.8-flash-low", "Gemini 3.8 Flash (Low)"),
+                    ("claude-sonnet-5-5-medium", "Claude Sonnet 5.5 (Medium)"), ("claude-sonnet-5-5-low", "Claude Sonnet 5.5 (Low)"),
+                    ("gpt-oss-120b-medium", "GPT-OSS 120B (Medium)")]:
+            print("\t".join(row))
         return 0
 
     if "-p=/usage" in args:

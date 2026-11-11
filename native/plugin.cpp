@@ -765,7 +765,7 @@ private:
     void handleAntigravityModels(const QString &output, const QString &errText, int exitCode) {
         m_models.clear();
         static const QRegularExpression ansiRe("\\x1b\\[[0-9;]*[A-Za-z]");
-        static const QRegularExpression lineRe("^([A-Za-z0-9][A-Za-z0-9._-]*)(?:\\s+\\*)?\\s{2,}(.+)$");
+        static const QRegularExpression lineRe("^([A-Za-z0-9][A-Za-z0-9._-]*)(?:\\s+\\*)?(?:\\t|\\s{2,})\\s*(.+)$");
         static const QRegularExpression effortSuffixRe("^(.*)-(low|medium|high|xhigh|max)$");
         static const QRegularExpression labelSuffixRe("^(.*)\\s+\\((Low|Medium|High|XHigh|Max)\\)$", QRegularExpression::CaseInsensitiveOption);
         static const QStringList canonicalEfforts = {"low", "medium", "high", "xhigh", "max"};
