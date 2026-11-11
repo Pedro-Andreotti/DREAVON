@@ -18,6 +18,8 @@ QString findDir(const QString &relative) {
 }
 
 int main(int argc, char *argv[]) {
+    // Estilo Fusion: respeita a paleta escura da janela de configurações em qualquer tema do Windows.
+    if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) qputenv("QT_QUICK_CONTROLS_STYLE", "Fusion");
     QApplication app(argc, argv);
     // O nome define as pastas de dados: no Windows, %APPDATA%\DREAVON (configurações).
     QCoreApplication::setApplicationName(QStringLiteral("DREAVON"));

@@ -2,9 +2,8 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.kcmutils as KCM
 
-KCM.SimpleKCM {
+ConfigPage {
     id: page
     property alias cfg_userName: userName.text
     property alias cfg_autoLocation: autoLocation.checked

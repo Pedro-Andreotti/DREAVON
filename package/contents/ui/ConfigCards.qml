@@ -2,9 +2,8 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.kcmutils as KCM
 
-KCM.SimpleKCM {
+ConfigPage {
     property alias cfg_showSystem: system.checked
     property alias cfg_showConnections: connections.checked
     property alias cfg_showMedia: media.checked

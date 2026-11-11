@@ -41,6 +41,8 @@ Window {
         {text: "Reconectar ao " + claudeBackend.providerName, run: () => claudeBackend.reconnect()}
     ]
 
+    SettingsWindow { id: settingsWindow; cfg: settings }
+
     Platform.SystemTrayIcon {
         id: tray
         visible: true
@@ -62,6 +64,7 @@ Window {
             Platform.MenuItem { text: root.panelActions[2].text; onTriggered: root.panelActions[2].run() }
             Platform.MenuItem { text: root.panelActions[3].text; onTriggered: root.panelActions[3].run() }
             Platform.MenuSeparator {}
+            Platform.MenuItem { text: "Configurações…"; onTriggered: settingsWindow.open(0) }
             Platform.MenuItem { text: "Sair"; onTriggered: Qt.quit() }
         }
     }
@@ -168,6 +171,8 @@ Window {
                     model: root.panelActions
                     B.MenuItem { required property var modelData; text: modelData.text; onTriggered: modelData.run() }
                 }
+                B.MenuSeparator {}
+                B.MenuItem { text: "Configurações…"; onTriggered: settingsWindow.open(0) }
             }
             Text {
                 anchors { left: parent.left; leftMargin: 16; verticalCenter: parent.verticalCenter }
@@ -178,6 +183,7 @@ Window {
             Row {
                 anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
                 spacing: 4
+                IconButton { t: themeBackend; icon: "preferences-system"; tip: "Configurações"; size: 24; onClicked: settingsWindow.open(0) }
                 IconButton { t: themeBackend; icon: "go-down"; tip: "Minimizar"; size: 24; onClicked: root.showMinimized() }
                 IconButton { t: themeBackend; icon: "window-close"; tip: "Fechar (continua na bandeja)"; size: 24; onClicked: root.close() }
             }
