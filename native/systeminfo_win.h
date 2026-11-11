@@ -4,6 +4,7 @@
 // registro e contadores PDH já abertos), sem WMI e sem abrir processos, e podem rodar a cada ciclo.
 // Valor indisponível: -1 (números) ou texto vazio, para a interface mostrar "—" e nunca 0%.
 
+#include <QList>
 #include <QString>
 #include <QtGlobal>
 
@@ -33,6 +34,19 @@ double gpuUsage();
 // (IOCTL_STORAGE_QUERY_PROPERTY / StorageDeviceTemperatureProperty), sem administrador.
 // Guardada por 10 s para não consultar o disco a cada ciclo. -1 se o disco não informar.
 double systemDiskTemperature();
+
+// Aparelhos externos conectados (os mesmos "contêineres" que Configurações > Bluetooth e dispositivos
+// lista): CfgMgr32 + DevGetObjectProperties, sem administrador e sem WinRT. Ficam de fora os
+// componentes internos do computador, aparelhos de rede (impressora Wi-Fi) e dispositivos só de
+// software (impressoras virtuais etc.). percent = bateria informada ao Windows ou -1.
+struct Peripheral {
+    QString name;
+    QString kind;        // "Fone", "Mouse", "Teclado", "Celular" ou vazio
+    QString category;    // categoria do Windows (ex.: "Audio.Headphone"), para diagnóstico
+    int percent = -1;
+    bool bluetooth = false;
+};
+QList<Peripheral> peripherals();
 
 struct Power {
     bool valid = false;        // GetSystemPowerStatus respondeu
