@@ -32,7 +32,7 @@ Settings {
     property bool showNews: true
 
     // Aparência
-    property string accentColor: "#3daee9"
+    property string accentColor: "#2f8bff"
     property int backgroundOpacity: 94
     property bool animations: true
 

@@ -652,7 +652,7 @@ private:
         expireQuota();
     }
 
-    QString dataRoot() const { return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/plasdria"; }
+    QString dataRoot() const { return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/dreavon"; }
     QString pragusWorkspace() const { const QString p=dataRoot()+"/workspace"; QDir().mkpath(p); return p; }
     QString workspace() const { return m_threadCwd.isEmpty() ? pragusWorkspace() : m_threadCwd; }
     static QString findBinary(const QString &name, const QStringList &extraPaths = {}) {
@@ -1687,7 +1687,7 @@ private:
     }
 };
 
-class PlasdriaPlugin : public QQmlExtensionPlugin {
+class DreavonPlugin : public QQmlExtensionPlugin {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID QQmlExtensionInterface_iid)
 public:

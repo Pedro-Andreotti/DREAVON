@@ -310,7 +310,7 @@ private slots:
         // Começa no Claude, faz uma pergunta e alterna para o Antigravity mantendo a conversa na tela.
         QCOMPARE(text("provider"), QString("claude"));
         QCOMPARE(text("providerName"), QString("Claude"));
-        QVERIFY(send("Meu projeto é o Plasdria"));
+        QVERIFY(send("Meu projeto é o DREAVON"));
         QTRY_VERIFY_WITH_TIMEOUT(!flag("busy"), 10000);
         QCOMPARE(messages()->rowCount(), 2);
         QCOMPARE(messages()->data(messages()->index(1, 0), Qt::UserRole + 5).toString(), QString("Claude"));

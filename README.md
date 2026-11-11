@@ -47,7 +47,7 @@ Estas são as funções da base Linux que o DREAVON pretende ter no Windows. Nen
 
 O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.md`](docs/windows-port.md).
 
-**Compilar o núcleo no Windows** (Qt 6, MSVC, CMake e Ninja instalados): `.\build-windows.ps1`. O resultado é `package\contents\ui\bridge\plasdriaplugin.dll`.
+**Compilar o núcleo no Windows** (Qt 6, MSVC, CMake e Ninja instalados): `.\build-windows.ps1`. O resultado é `package\contents\ui\bridge\dreavonplugin.dll`.
 
 ## Roadmap
 

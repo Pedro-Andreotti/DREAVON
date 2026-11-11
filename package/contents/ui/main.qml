@@ -9,7 +9,7 @@ import "bridge" as Backend
 // cantos arredondados, arrastável pela barra de título e redimensionável pelas bordas.
 Window {
     id: root
-    title: "Plasdria"
+    title: "DREAVON"
     width: 1280; height: 800
     minimumWidth: 340; minimumHeight: 480
     visible: true
@@ -71,7 +71,7 @@ Window {
 
     Theme {
         id: themeBackend
-        accent: root.cfg.accentColor || "#3daee9"
+        accent: root.cfg.accentColor || "#2f8bff"
         backgroundOpacity: (root.cfg.backgroundOpacity || 94) / 100
         animations: root.cfg.animations
     }

@@ -25,7 +25,7 @@ Levantamento feito a partir do README e de uma busca por APIs específicas de Li
 | Baterias (notebook e periféricos) | UPower e BlueZ (D-Bus) | `GetSystemPowerStatus`; Bluetooth via WinRT (`BluetoothLEDevice`/GATT Battery Service) | `plugin.cpp` |
 | Notificações dos lembretes | `org.freedesktop.Notifications` | Notificação toast do Windows (WinRT) ou `QSystemTrayIcon::showMessage` | `plugin.cpp` |
 | Nome do modelo do notebook | `/sys/class/dmi/id/product_name` | WMI `Win32_ComputerSystem` | `plugin.cpp` |
-| Pastas de dados e cache | `~/.local/share/plasdria`, `~/.cache/plasdria` (via `QStandardPaths`) | `QStandardPaths` já resolve para `%LOCALAPPDATA%` | vários |
+| Pastas de dados e cache | `~/.local/share/dreavon`, `~/.cache/dreavon` (via `QStandardPaths`) | `QStandardPaths` já resolve para `%LOCALAPPDATA%` | vários |
 | CLIs de IA (`claude`, `codex`, `gemini`, `agy`) | `QProcess` + `QStandardPaths::findExecutable` | Funciona se os CLIs estiverem no PATH; atenção a `.cmd`/`.ps1` e a aspas | `chathistory.cpp`, `plugin.cpp` |
 | Atalho global | Atalho do Plasma | `RegisterHotKey` (Win32) ou biblioteca Qt de atalhos globais | novo |
 | Casca do widget | Plasmoide (`kpackagetool6`) | Janela frameless Qt Quick com bandeja do sistema (e, se desejado, barra lateral ancorada) | novo |
@@ -45,4 +45,4 @@ Levantamento feito a partir do README e de uma busca por APIs específicas de Li
 - Qual casca usar: janela flutuante, barra lateral ou widget na área de trabalho.
 - Temperaturas: aceitar um valor aproximado ou depender de uma ferramenta de terceiros.
 - Compilador: MSVC ou MinGW (impacta o acesso a WinRT).
-- Nome, ícone e identidade visual do DREAVON, que ainda usam os do Plasdria.
+- ~~Nome, ícone e identidade visual do DREAVON~~: trocados no passo 2.

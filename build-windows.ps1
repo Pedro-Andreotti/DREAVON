@@ -1,6 +1,6 @@
 # Compila o plugin nativo no Windows (MSVC + Qt 6 + CMake + Ninja).
 # Uso: .\build-windows.ps1 [-Config Release|Debug] [-QtDir C:\Qt\6.11.3\msvc2022_64] [-Run]
-# Resultado: package\contents\ui\bridge\plasdriaplugin.dll e build-windows-<config>\dreavon.exe
+# Resultado: package\contents\ui\bridge\dreavonplugin.dll e build-windows-<config>\dreavon.exe
 # -Run abre o DREAVON depois de compilar.
 param(
     [ValidateSet('Release', 'Debug')] [string]$Config = 'Release',

@@ -108,7 +108,7 @@ QUrl MediaClient::artUrl() const {
 bool MediaClient::spotifyInstalled() const { return !QStandardPaths::findExecutable(spotifyCommand()).isEmpty(); }
 
 QString MediaClient::spotifyCommand() const {
-    const QString custom = qEnvironmentVariable("PLASDRIA_SPOTIFY_COMMAND");
+    const QString custom = qEnvironmentVariable("DREAVON_SPOTIFY_COMMAND");
     return custom.isEmpty() ? QStringLiteral("spotify") : custom;
 }
 
@@ -269,11 +269,11 @@ void MediaClient::cacheArt() {
 }
 
 QString MediaClient::statePath() const {
-    return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/plasdria/media.json";
+    return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/dreavon/media.json";
 }
 
 QString MediaClient::artDir() const {
-    return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + "/plasdria/art";
+    return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + "/dreavon/art";
 }
 
 void MediaClient::save() {

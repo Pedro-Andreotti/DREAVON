@@ -1,5 +1,5 @@
 # Plugin QML nativo do DREAVON (equivalente ao native/bridge.pro).
-# Gera a biblioteca "plasdriaplugin" em package/contents/ui/bridge, ao lado do qmldir.
+# Gera a biblioteca "dreavonplugin" em package/contents/ui/bridge, ao lado do qmldir.
 cmake_minimum_required(VERSION 3.21)
 project(DREAVON LANGUAGES CXX)
 
@@ -14,7 +14,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(Qt6 REQUIRED COMPONENTS DBus)
 endif()
 
-add_library(plasdriaplugin MODULE
+add_library(dreavonplugin MODULE
     native/plugin.cpp
     native/dashboardclient.cpp native/dashboardclient.h
     native/chathistory.cpp native/chathistory.h
@@ -22,26 +22,26 @@ add_library(plasdriaplugin MODULE
     native/networkclient.cpp native/networkclient.h
 )
 
-target_link_libraries(plasdriaplugin PRIVATE
+target_link_libraries(dreavonplugin PRIVATE
     Qt6::Core Qt6::Gui Qt6::Qml Qt6::Network Qt6::Concurrent)
 if(TARGET Qt6::DBus)
-    target_link_libraries(plasdriaplugin PRIVATE Qt6::DBus)
+    target_link_libraries(dreavonplugin PRIVATE Qt6::DBus)
 endif()
 
 if(MSVC)
     # Fontes em UTF-8 com textos em português; sem /utf-8 o MSVC usa a página de código local.
-    target_compile_options(plasdriaplugin PRIVATE /utf-8)
+    target_compile_options(dreavonplugin PRIVATE /utf-8)
 endif()
 
-# Sem prefixo "lib" e na pasta do qmldir, para "plugin plasdriaplugin" ser encontrado.
+# Sem prefixo "lib" e na pasta do qmldir, para "plugin dreavonplugin" ser encontrado.
 set(bridge_dir "${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/bridge")
-set_target_properties(plasdriaplugin PROPERTIES
+set_target_properties(dreavonplugin PROPERTIES
     PREFIX ""
     LIBRARY_OUTPUT_DIRECTORY "${bridge_dir}"
     RUNTIME_OUTPUT_DIRECTORY "${bridge_dir}")
 foreach(config Debug Release RelWithDebInfo MinSizeRel)
     string(TOUPPER "${config}" config_upper)
-    set_target_properties(plasdriaplugin PROPERTIES
+    set_target_properties(dreavonplugin PROPERTIES
         LIBRARY_OUTPUT_DIRECTORY_${config_upper} "${bridge_dir}"
         RUNTIME_OUTPUT_DIRECTORY_${config_upper} "${bridge_dir}")
 endforeach()
@@ -72,7 +72,7 @@ target_compile_definitions(dreavon PRIVATE DREAVON_SOURCE_DIR="${CMAKE_CURRENT_S
 if(MSVC)
     target_compile_options(dreavon PRIVATE /utf-8)
 endif()
-add_dependencies(dreavon plasdriaplugin)
+add_dependencies(dreavon dreavonplugin)
 if(TARGET kirigamishim)
     add_dependencies(dreavon kirigamishim)
 endif()
