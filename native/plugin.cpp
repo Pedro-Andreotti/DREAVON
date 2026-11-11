@@ -498,11 +498,11 @@ public:
             fail(detail.isEmpty() ? "O Claude Code encerrou antes de conectar. Use Reconectar." : "Claude Code: "+detail);
             stopProbe();
         });
-        m_probe->setArguments(baseArguments() << "--tools" << "" << "--no-session-persistence");
+        setArgs(m_probe, baseArguments() << "--tools" << "" << "--no-session-persistence");
         connect(m_probe,&QProcess::started,this,[this] {
             writeLine(m_probe,{{"type","control_request"},{"request_id","pragus-init"},{"request",QJsonObject{{"subtype","initialize"}}}});
         });
-        m_probe->start();
+        startProcess(m_probe);
     }
     Q_INVOKABLE void reconnect() {
         if(m_busy || m_conversationLoading) return;
@@ -745,6 +745,81 @@ private:
         return {"-p","--input-format","stream-json","--output-format","stream-json","--verbose",
                 "--setting-sources","","--strict-mcp-config"};
     }
+#ifdef Q_OS_WIN
+    static bool isBatchFile(const QString &path) {
+        return path.endsWith(".cmd", Qt::CaseInsensitive) || path.endsWith(".bat", Qt::CaseInsensitive);
+    }
+    // Os CLIs instalados pelo npm vêm como .cmd que só chamam um .exe ou um script do node.
+    // Executar esse alvo direto evita o cmd.exe, que interpretaria & | % ^ ! < > e aspas nos
+    // argumentos (injeção de comandos). Devolve [programa, argumentos fixos...]; se o .cmd não for
+    // reconhecido, devolve o próprio .cmd (e aí valem as regras de launchesBatch/batchArgumentsSafe).
+    static QStringList windowsLaunch(const QString &binary) {
+        if (!isBatchFile(binary)) return {binary};
+        QFile file(binary);
+        if (!file.open(QIODevice::ReadOnly) || file.size() > 65536) return {binary};
+        const QString text = QString::fromLocal8Bit(file.readAll());
+        const QString dir = QDir::cleanPath(QFileInfo(binary).absolutePath());
+        // Caminhos citados como "%dp0%\..." ou "%~dp0\..." (sem string bruta: o moc não as entende bem).
+        static const QRegularExpression reference(QStringLiteral("\"%~?dp0%?\\\\([^\"%]+)\""));
+        QString target;
+        for (auto it = reference.globalMatch(text); it.hasNext();) {
+            const QString relative = it.next().captured(1);
+            if (relative.compare("node.exe", Qt::CaseInsensitive) != 0) target = relative;   // o último citado é o alvo
+        }
+        if (target.isEmpty()) return {binary};
+        const QString full = QDir::cleanPath(dir + "/" + QDir::fromNativeSeparators(target));
+        if (!full.startsWith(dir + "/", Qt::CaseInsensitive) || !QFileInfo(full).isFile()) return {binary};
+        if (full.endsWith(".exe", Qt::CaseInsensitive)) return {QDir::toNativeSeparators(full)};
+        for (const QString &ext : {QStringLiteral(".js"), QStringLiteral(".cjs"), QStringLiteral(".mjs")}) {
+            if (!full.endsWith(ext, Qt::CaseInsensitive)) continue;
+            QString node = dir + "/node.exe";
+            if (!QFileInfo(node).isFile()) node = QStandardPaths::findExecutable("node");
+            if (!node.endsWith(".exe", Qt::CaseInsensitive)) return {binary};
+            return {QDir::toNativeSeparators(node), QDir::toNativeSeparators(full)};
+        }
+        return {binary};
+    }
+    // Argumentos que o cmd.exe não interpreta: sem aspas, %, !, &, |, <, >, ^ nem quebra de linha.
+    static bool batchArgumentsSafe(const QStringList &args) {
+        static const QRegularExpression unsafe(QStringLiteral("[\"%!&|<>^\\r\\n]"));
+        for (const QString &a : args) if (a.contains(unsafe)) return false;
+        return true;
+    }
+#endif
+    // Verdadeiro quando o CLI só pode rodar por um .cmd/.bat: o texto do usuário então vai pelo stdin.
+    static bool launchesBatch(const QString &binary) {
+#ifdef Q_OS_WIN
+        return isBatchFile(windowsLaunch(binary).value(0));
+#else
+        Q_UNUSED(binary);
+        return false;
+#endif
+    }
+    // Define os argumentos do processo. No Windows, junta os argumentos fixos do alvo do .cmd e,
+    // se ainda for um .cmd/.bat, marca o processo como inseguro quando algum argumento tem
+    // caractere especial do cmd.exe (startProcess então não o executa).
+    void setArgs(QProcess *process, const QStringList &args) {
+#ifdef Q_OS_WIN
+        process->setArguments(process->property("dreavonPrefix").toStringList() + args);
+        process->setProperty("dreavonUnsafe", process->property("dreavonBatch").toBool() && !batchArgumentsSafe(args));
+#else
+        process->setArguments(args);
+#endif
+    }
+    void startProcess(QProcess *process) {
+#ifdef Q_OS_WIN
+        if (process->property("dreavonUnsafe").toBool()) {
+            // Mesmo caminho de um CLI ausente: start() sem programa falha na hora (FailedToStart).
+            process->setProgram(QString());
+            process->start();
+            if (process == m_turnProcess) killTurn();
+            fail("Por segurança, o DREAVON não executou o CLI: ele só pode ser chamado por um arquivo .cmd/.bat e um "
+                 "argumento (modelo, conversa ou anexo) tem caractere especial do cmd.exe (\" % ! & | < > ^ ou quebra de linha).");
+            return;
+        }
+#endif
+        process->start();
+    }
     QProcess *newProcess(const QString &binary) {
         auto *process=new QProcess(this);
         auto env=QProcessEnvironment::systemEnvironment();
@@ -758,7 +833,14 @@ private:
 #endif
         for(const QString &key:{QString("CLAUDECODE"),QString("CLAUDE_CODE_ENTRYPOINT")}) env.remove(key);
         process->setProcessEnvironment(env);
+#ifdef Q_OS_WIN
+        const QStringList launch = windowsLaunch(binary);
+        process->setProgram(launch.value(0));
+        process->setProperty("dreavonPrefix", launch.mid(1));
+        process->setProperty("dreavonBatch", isBatchFile(launch.value(0)));
+#else
         process->setProgram(binary);
+#endif
         return process;
     }
     void writeLine(QProcess *process,const QJsonObject &o) {
@@ -817,8 +899,8 @@ private:
             stopProbe();
             handleAntigravityModels(out, err, code);
         });
-        m_probe->setArguments({"models"});
-        m_probe->start();
+        setArgs(m_probe, {"models"});
+        startProcess(m_probe);
     }
 
     void handleAntigravityModels(const QString &output, const QString &errText, int exitCode) {
@@ -920,8 +1002,8 @@ private:
             process->deleteLater();
         });
         QTimer::singleShot(20000, process, [process] { if (process->state() != QProcess::NotRunning) process->kill(); });
-        process->setArguments({"--output-format", "json", "-p=/usage"});
-        process->start();
+        setArgs(process, {"--output-format", "json", "-p=/usage"});
+        startProcess(process);
     }
 
     void updateAntigravityQuotaForModel(bool save) {
@@ -976,7 +1058,7 @@ private:
         if (!m_thread.isEmpty()) args << "--conversation" << m_thread;
         m_turnProcess = newProcess(antigravityBinary());
         m_turnProcess->setWorkingDirectory(cwd);
-        m_turnProcess->setArguments(args);
+        setArgs(m_turnProcess, args);
         m_turnBuffer.clear(); m_turnErrors.clear(); m_turnFinished = false;
         m_bubble = QUuid::createUuid().toString(); m_currentMessage.clear(); m_separator = false; m_streamedMessages.clear();
         m_lastOutput = QDateTime::currentMSecsSinceEpoch();
@@ -1009,7 +1091,7 @@ private:
             writeLine(process, message);
             process->closeWriteChannel();
         });
-        m_turnProcess->start();
+        startProcess(m_turnProcess);
         return true;
     }
 
@@ -1039,10 +1121,16 @@ private:
         QStringList args = {"exec", "--json", "--skip-git-repo-check"};
         if (!m_model.isEmpty()) args << "-m" << m_model;
         for (const auto &a : attachments) if (a["kind"] == "image") args << "--image" << a["imagePath"].toString();
-        args << textParts.join("\n\n");
+        const QString prompt = textParts.join("\n\n");
+        // Num .cmd/.bat (Windows) o texto do usuário nunca vai como argumento: "-" faz o codex ler do stdin.
+        const bool promptViaStdin = launchesBatch(codexBinary());
+        args << (promptViaStdin ? QStringLiteral("-") : prompt);
         m_turnProcess = newProcess(codexBinary());
+        if (promptViaStdin) connect(m_turnProcess, &QProcess::started, this, [process = m_turnProcess, prompt] {
+            process->write(prompt.toUtf8()); process->closeWriteChannel();
+        });
         m_turnProcess->setWorkingDirectory(workspace());
-        m_turnProcess->setArguments(args);
+        setArgs(m_turnProcess, args);
         m_turnBuffer.clear(); m_turnErrors.clear(); m_turnFinished = false;
         m_bubble = QUuid::createUuid().toString(); m_separator = false;
         m_lastOutput = QDateTime::currentMSecsSinceEpoch();
@@ -1061,7 +1149,7 @@ private:
             }
             m_cancelRequested = false; refreshHistory();
         });
-        m_turnProcess->start();
+        startProcess(m_turnProcess);
         return true;
     }
 
@@ -1088,10 +1176,17 @@ private:
         }
         QStringList args;
         if (!m_model.isEmpty()) args << "-m" << m_model;
-        args << "-p" << textParts.join("\n\n");
+        const QString prompt = textParts.join("\n\n");
+        // Num .cmd/.bat (Windows) o texto do usuário nunca vai como argumento: sem -p, o Gemini CLI
+        // lê a pergunta do stdin (modo não interativo).
+        const bool promptViaStdin = launchesBatch(geminiBinary());
+        if (!promptViaStdin) args << "-p" << prompt;
         m_turnProcess = newProcess(geminiBinary());
+        if (promptViaStdin) connect(m_turnProcess, &QProcess::started, this, [process = m_turnProcess, prompt] {
+            process->write(prompt.toUtf8()); process->closeWriteChannel();
+        });
         m_turnProcess->setWorkingDirectory(workspace());
-        m_turnProcess->setArguments(args);
+        setArgs(m_turnProcess, args);
         m_turnBuffer.clear(); m_turnErrors.clear(); m_turnFinished = false;
         m_bubble = QUuid::createUuid().toString(); m_separator = false;
         m_lastOutput = QDateTime::currentMSecsSinceEpoch();
@@ -1111,7 +1206,7 @@ private:
             else fail("Gemini CLI: " + QString::fromUtf8(m_turnErrors).trimmed().right(300));
             m_cancelRequested = false;
         });
-        m_turnProcess->start();
+        startProcess(m_turnProcess);
         return true;
     }
 
@@ -1384,8 +1479,8 @@ private:
             process->deleteLater();
         });
         QTimer::singleShot(20000,process,[process] { if(process->state()!=QProcess::NotRunning) process->kill(); });
-        process->setArguments(baseArguments() << "--tools" << "" << "--no-session-persistence");
-        process->start();
+        setArgs(process, baseArguments() << "--tools" << "" << "--no-session-persistence");
+        startProcess(process);
     }
     // Resposta do get_usage: utilização em porcentagem (0–100) e renovação em ISO 8601.
     void applyUsage(const QJsonObject &usage) {
@@ -1442,7 +1537,7 @@ private:
         if(!m_thread.isEmpty()) args<<"--resume"<<m_thread;
         m_turnProcess=newProcess(claudeBinary());
         m_turnProcess->setWorkingDirectory(cwd);
-        m_turnProcess->setArguments(args);
+        setArgs(m_turnProcess, args);
         m_turnBuffer.clear(); m_turnErrors.clear(); m_turnFinished=false;
         m_bubble=QUuid::createUuid().toString(); m_currentMessage.clear(); m_separator=false; m_streamedMessages.clear();
         m_lastOutput=QDateTime::currentMSecsSinceEpoch();
@@ -1473,7 +1568,7 @@ private:
             refreshHistory();
         });
         connect(process,&QProcess::started,this,[this,process,message] { writeLine(process,message); });
-        m_turnProcess->start();
+        startProcess(m_turnProcess);
         return true;
     }
     void appendAssistant(const QString &text) {
