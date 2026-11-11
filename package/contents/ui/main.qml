@@ -1,23 +1,28 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick.Layouts
-import org.kde.plasma.plasmoid
-import org.kde.plasma.core as PlasmaCore
 import "bridge" as Backend
 
-PlasmoidItem {
+// Janela principal do DREAVON, fora do Plasma: sem moldura do sistema, fundo escuro com
+// cantos arredondados, arrastável pela barra de título e redimensionável pelas bordas.
+Window {
     id: root
+    title: "Plasdria"
+    width: 1280; height: 800
+    minimumWidth: 340; minimumHeight: 480
+    visible: true
+    color: "transparent"
+    flags: Qt.Window | Qt.FramelessWindowHint
+
     AppSettings { id: settings }
     readonly property var cfg: settings
-    readonly property bool onDesktop: Plasmoid.formFactor === PlasmaCore.Types.Planar
-    Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
-    preferredRepresentation: onDesktop ? fullRepresentation : compactRepresentation
-    switchWidth: 340; switchHeight: 420
     property bool layoutEditing: false
 
-    toolTipMainText: "Plasdria"
-    toolTipSubText: {
-        const used = claudeBackend.fiveHourUsed
-        return claudeBackend.providerName + " · " + claudeBackend.status + (used >= 0 ? " · " + Math.round(100 - used) + "% da cota de 5h livre" : "")
+    // Traz a janela para a frente e põe o foco no chat.
+    function showPanel() {
+        if (root.visibility === Window.Minimized || !root.visible) root.showNormal()
+        root.raise(); root.requestActivate()
+        shell.focusChat()
     }
 
     Theme {
@@ -66,7 +71,7 @@ PlasmoidItem {
     readonly property string modelKey: cfg.defaultModel + "|" + cfg.defaultEffort
     onModelKeyChanged: if (claudeBackend.ready && !claudeBackend.busy) applyModelDefaults()
 
-    // Alarmes dos lembretes: avisa uma vez quando chega a hora (mesmo com o painel fechado).
+    // Alarmes dos lembretes: avisa uma vez quando chega a hora (mesmo com a janela oculta).
     Timer {
         interval: 15000; running: true; repeat: true; triggeredOnStart: true
         onTriggered: root.checkReminders()
@@ -80,7 +85,7 @@ PlasmoidItem {
         for (const item of list) {
             if (item.done || !(item.due > 0) || item.notified || item.due > now) continue
             item.notified = true; changed = true
-            // Lembretes muito antigos (widget estava fechado) são só marcados, sem barulho.
+            // Lembretes muito antigos (aplicativo estava fechado) são só marcados, sem barulho.
             if (now - item.due < 6 * 3600 * 1000) dashBackend.notify("Lembrete", item.text)
         }
         if (changed) cfg.reminders = JSON.stringify(list)
@@ -91,49 +96,72 @@ PlasmoidItem {
     Backend.MediaClient { id: mediaBackend }
     Backend.NetworkClient { id: netBackend }
 
-    Plasmoid.contextualActions: [
-        PlasmaCore.Action {
-            text: "Nova conversa"
-            icon.name: "list-add"
-            onTriggered: { claudeBackend.newChat(); root.expanded = true }
-        },
-        PlasmaCore.Action {
-            text: "Alternar IA (" + claudeBackend.providerName + ")"
-            icon.name: "Synchronize"
-            onTriggered: { claudeBackend.nextProvider(); root.expanded = true }
-        },
-        PlasmaCore.Action {
-            text: root.layoutEditing ? "Concluir a edição do layout" : "Editar layout"
-            icon.name: "document-edit"
-            onTriggered: { root.layoutEditing = !root.layoutEditing; root.expanded = true }
-        },
-        PlasmaCore.Action {
-            text: "Reconectar ao " + claudeBackend.providerName
-            icon.name: "view-refresh"
-            onTriggered: claudeBackend.reconnect()
-        }
-    ]
+    // Fundo arredondado (com a opacidade das configurações).
+    Rectangle {
+        id: frame
+        anchors.fill: parent
+        radius: root.visibility === Window.Maximized ? 0 : themeBackend.radius
+        color: themeBackend.background
+        border.color: themeBackend.border
+        border.width: 1
 
-    fullRepresentation: Shell {
-        id: shell
-        t: themeBackend; client: claudeBackend; dash: dashBackend; media: mediaBackend; net: netBackend; cfg: root.cfg
-        editing: root.layoutEditing
-        events: calendarFeed.events; feedConfigured: calendarFeed.configured; feedStatus: calendarFeed.status
-        onEditRequested: on => root.layoutEditing = on
-        onSaveReminders: json => root.cfg.reminders = json
-        onSaveLayout: json => root.cfg.layout = json
-        Layout.minimumWidth: 340
-        Layout.minimumHeight: 480
-        Layout.preferredWidth: 1280
-        Layout.preferredHeight: 800
-        Connections {
-            target: root
-            function onExpandedChanged() { if (root.expanded) shell.focusChat() }
+        // Barra de título: arrasta a janela; duplo clique maximiza/restaura.
+        Item {
+            id: titleBar
+            anchors { left: parent.left; right: parent.right; top: parent.top }
+            height: 34
+            DragHandler {
+                target: null
+                onActiveChanged: if (active) root.startSystemMove()
+            }
+            TapHandler {
+                onDoubleTapped: root.visibility === Window.Maximized ? root.showNormal() : root.showMaximized()
+            }
+            Text {
+                anchors { left: parent.left; leftMargin: 16; verticalCenter: parent.verticalCenter }
+                text: root.title
+                color: themeBackend.muted
+                font.pixelSize: 12; font.weight: Font.DemiBold; font.letterSpacing: 1.2
+            }
+            Row {
+                anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                spacing: 4
+                IconButton { t: themeBackend; icon: "go-down"; tip: "Minimizar"; size: 24; onClicked: root.showMinimized() }
+                IconButton { t: themeBackend; icon: "window-close"; tip: "Fechar"; size: 24; onClicked: root.close() }
+            }
+        }
+
+        Shell {
+            id: shell
+            anchors { left: parent.left; right: parent.right; top: titleBar.bottom; bottom: parent.bottom; margins: 10; topMargin: 0 }
+            t: themeBackend; client: claudeBackend; dash: dashBackend; media: mediaBackend; net: netBackend; cfg: root.cfg
+            editing: root.layoutEditing
+            events: calendarFeed.events; feedConfigured: calendarFeed.configured; feedStatus: calendarFeed.status
+            onEditRequested: on => root.layoutEditing = on
+            onSaveReminders: json => root.cfg.reminders = json
+            onSaveLayout: json => root.cfg.layout = json
         }
     }
 
-    compactRepresentation: CompactIcon {
-        t: themeBackend; client: claudeBackend
-        onClicked: root.expanded = !root.expanded
+    // Bordas para redimensionar (a janela não tem moldura do sistema).
+    component ResizeEdge: MouseArea {
+        required property int edges
+        hoverEnabled: true
+        enabled: root.visibility !== Window.Maximized
+        cursorShape: edges === (Qt.LeftEdge | Qt.TopEdge) || edges === (Qt.RightEdge | Qt.BottomEdge) ? Qt.SizeFDiagCursor
+                   : edges === (Qt.RightEdge | Qt.TopEdge) || edges === (Qt.LeftEdge | Qt.BottomEdge) ? Qt.SizeBDiagCursor
+                   : (edges & (Qt.LeftEdge | Qt.RightEdge)) ? Qt.SizeHorCursor : Qt.SizeVerCursor
+        onPressed: root.startSystemResize(edges)
     }
+    readonly property int grip: 6
+    ResizeEdge { edges: Qt.LeftEdge; anchors { left: parent.left; top: parent.top; bottom: parent.bottom; topMargin: root.grip; bottomMargin: root.grip } width: root.grip }
+    ResizeEdge { edges: Qt.RightEdge; anchors { right: parent.right; top: parent.top; bottom: parent.bottom; topMargin: root.grip; bottomMargin: root.grip } width: root.grip }
+    ResizeEdge { edges: Qt.TopEdge; anchors { top: parent.top; left: parent.left; right: parent.right; leftMargin: root.grip; rightMargin: root.grip } height: root.grip }
+    ResizeEdge { edges: Qt.BottomEdge; anchors { bottom: parent.bottom; left: parent.left; right: parent.right; leftMargin: root.grip; rightMargin: root.grip } height: root.grip }
+    ResizeEdge { edges: Qt.LeftEdge | Qt.TopEdge; anchors { left: parent.left; top: parent.top } width: root.grip; height: root.grip }
+    ResizeEdge { edges: Qt.RightEdge | Qt.TopEdge; anchors { right: parent.right; top: parent.top } width: root.grip; height: root.grip }
+    ResizeEdge { edges: Qt.LeftEdge | Qt.BottomEdge; anchors { left: parent.left; bottom: parent.bottom } width: root.grip; height: root.grip }
+    ResizeEdge { edges: Qt.RightEdge | Qt.BottomEdge; anchors { right: parent.right; bottom: parent.bottom } width: root.grip; height: root.grip }
+
+    Component.onCompleted: shell.focusChat()
 }

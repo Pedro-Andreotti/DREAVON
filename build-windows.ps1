@@ -1,9 +1,11 @@
 # Compila o plugin nativo no Windows (MSVC + Qt 6 + CMake + Ninja).
-# Uso: .\build-windows.ps1 [-Config Release|Debug] [-QtDir C:\Qt\6.11.3\msvc2022_64]
-# Resultado: package\contents\ui\bridge\plasdriaplugin.dll
+# Uso: .\build-windows.ps1 [-Config Release|Debug] [-QtDir C:\Qt\6.11.3\msvc2022_64] [-Run]
+# Resultado: package\contents\ui\bridge\plasdriaplugin.dll e build-windows-<config>\dreavon.exe
+# -Run abre o DREAVON depois de compilar.
 param(
     [ValidateSet('Release', 'Debug')] [string]$Config = 'Release',
-    [string]$QtDir = $(if ($env:QT_DIR) { $env:QT_DIR } else { 'C:\Qt\6.11.3\msvc2022_64' })
+    [string]$QtDir = $(if ($env:QT_DIR) { $env:QT_DIR } else { 'C:\Qt\6.11.3\msvc2022_64' }),
+    [switch]$Run
 )
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
@@ -32,3 +34,10 @@ if ($LASTEXITCODE) { exit $LASTEXITCODE }
 cmake --build $build
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Write-Host "Plugin gerado em $root\package\contents\ui\bridge"
+if ($Run) {
+    # O Controle Inteligente de Aplicativos do Windows bloqueia o dreavon.exe (sem assinatura);
+    # por isso o DREAVON abre pelo qml.exe do Qt, que é assinado.
+    $env:PATH = "$QtDir\bin;$env:PATH"  # DLLs do Qt
+    Start-Process -FilePath "$QtDir\bin\qml.exe" -ArgumentList @(
+        '--apptype', 'widget', '-I', "`"$root\windows\qml`"", "`"$root\windows\dreavon.qml`"")
+}

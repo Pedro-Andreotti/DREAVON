@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Qml Network Concurrent)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Qml Network Concurrent Widgets)
 # D-Bus (MPRIS, NetworkManager, UPower, BlueZ, notificações) só existe no Linux.
 # Ao ligar Qt6::DBus, o Qt define QT_DBUS_LIB, que liga o código correspondente.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -63,4 +63,16 @@ if(WIN32)
             LIBRARY_OUTPUT_DIRECTORY_${config_upper} "${kirigami_dir}"
             RUNTIME_OUTPUT_DIRECTORY_${config_upper} "${kirigami_dir}")
     endforeach()
+endif()
+
+# Inicializador: abre o main.qml numa janela própria, com ícone na bandeja.
+add_executable(dreavon WIN32 app/main.cpp)
+target_link_libraries(dreavon PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Qml)
+target_compile_definitions(dreavon PRIVATE DREAVON_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+if(MSVC)
+    target_compile_options(dreavon PRIVATE /utf-8)
+endif()
+add_dependencies(dreavon plasdriaplugin)
+if(TARGET kirigamishim)
+    add_dependencies(dreavon kirigamishim)
 endif()
