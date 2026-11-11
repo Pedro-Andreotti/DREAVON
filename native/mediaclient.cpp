@@ -2,14 +2,6 @@
 
 #include <QCryptographicHash>
 #include <QDateTime>
-#include <QDBusArgument>
-#include <QDBusConnection>
-#include <QDBusConnectionInterface>
-#include <QDBusMessage>
-#include <QDBusObjectPath>
-#include <QDBusPendingCallWatcher>
-#include <QDBusPendingReply>
-#include <QDBusVariant>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -21,6 +13,20 @@
 #include <QStandardPaths>
 #include <memory>
 
+// Os players são controlados por MPRIS, via D-Bus, que só existe no Linux.
+// Qt define QT_DBUS_LIB quando o módulo DBus é ligado. Sem ele (Windows), o cliente só
+// mostra a última música salva; o controle de verdade virá do SMTC (TODO(Windows)).
+#ifdef QT_DBUS_LIB
+#include <QDBusArgument>
+#include <QDBusConnection>
+#include <QDBusConnectionInterface>
+#include <QDBusMessage>
+#include <QDBusObjectPath>
+#include <QDBusPendingCallWatcher>
+#include <QDBusPendingReply>
+#include <QDBusVariant>
+#endif
+
 namespace {
 const QString Prefix = QStringLiteral("org.mpris.MediaPlayer2.");
 const QString PlayerPath = QStringLiteral("/org/mpris/MediaPlayer2");
@@ -30,31 +36,39 @@ constexpr int MaxCachedArt = 150;
 constexpr qint64 ResumeTimeoutMs = 30000;
 
 QVariant plain(const QVariant &value) {
+#ifdef QT_DBUS_LIB
     if (value.canConvert<QDBusVariant>()) return value.value<QDBusVariant>().variant();
+#endif
     return value;
 }
 
 QVariantMap metadataMap(const QVariant &value) {
     const QVariant inner = plain(value);
+#ifdef QT_DBUS_LIB
     if (inner.canConvert<QDBusArgument>()) {
         QVariantMap map;
         inner.value<QDBusArgument>() >> map;
         for (auto i = map.begin(); i != map.end(); ++i) i.value() = plain(i.value());
         return map;
     }
+#endif
     return inner.toMap();
 }
 
 QString joined(const QVariant &value) {
     const QVariant inner = plain(value);
+#ifdef QT_DBUS_LIB
     if (inner.canConvert<QDBusArgument>()) { QStringList list; inner.value<QDBusArgument>() >> list; return list.join(", "); }
+#endif
     if (inner.typeId() == QMetaType::QStringList) return inner.toStringList().join(", ");
     return inner.toString();
 }
 
 QString objectPath(const QVariant &value) {
     const QVariant inner = plain(value);
+#ifdef QT_DBUS_LIB
     if (inner.canConvert<QDBusObjectPath>()) return inner.value<QDBusObjectPath>().path();
+#endif
     return inner.toString();
 }
 
@@ -105,6 +119,7 @@ double MediaClient::position() const {
 }
 
 void MediaClient::poll() {
+#ifdef QT_DBUS_LIB
     auto bus = QDBusConnection::sessionBus();
     if (!bus.isConnected() || !bus.interface()) return;
     if (m_pendingResume && QDateTime::currentMSecsSinceEpoch() - m_resumeSince > ResumeTimeoutMs) {
@@ -135,6 +150,7 @@ void MediaClient::poll() {
             apply(chosen, results->value(chosen));
         });
     }
+#endif
 }
 
 void MediaClient::apply(const QString &service, const QVariantMap &p) {
@@ -158,11 +174,13 @@ void MediaClient::apply(const QString &service, const QVariantMap &p) {
         const bool sameTrack = (!m_trackId.isEmpty() && trackId == m_trackId) || (!title.isEmpty() && title == m_title);
         if (!sameTrack && QDateTime::currentMSecsSinceEpoch() - m_resumeSince < ResumeTimeoutMs) return;
         m_pendingResume = false;
+#ifdef QT_DBUS_LIB
         if (sameTrack && m_position > 3 && (m_length <= 0 || m_position < m_length - 3) && !trackId.isEmpty()) {
             auto msg = QDBusMessage::createMethodCall(service, PlayerPath, PlayerInterface, "SetPosition");
             msg << QVariant::fromValue(QDBusObjectPath(trackId)) << QVariant::fromValue<qlonglong>(qlonglong(m_position * 1e6));
             QDBusConnection::sessionBus().asyncCall(msg, 1500);
         }
+#endif
     }
 
     m_service = service;
@@ -309,28 +327,40 @@ void MediaClient::launch(const QString &entry) {
 }
 
 void MediaClient::resumeOn(const QString &service) {
+#ifdef QT_DBUS_LIB
     QString method = "Play";
     QVariantList args;
     if (entryOf(service) == "spotify" && !m_uri.isEmpty()) { method = "OpenUri"; args << m_uri; }
     auto msg = QDBusMessage::createMethodCall(service, PlayerPath, PlayerInterface, method);
     msg.setArguments(args);
     QDBusConnection::sessionBus().asyncCall(msg, 3000);
+#else
+    Q_UNUSED(service);
+#endif
     QTimer::singleShot(400, this, &MediaClient::poll);
 }
 
 void MediaClient::call(const QString &method, const QVariantList &args) {
     if (m_service.isEmpty()) return;
+#ifdef QT_DBUS_LIB
     auto msg = QDBusMessage::createMethodCall(m_service, PlayerPath, PlayerInterface, method);
     msg.setArguments(args);
     QDBusConnection::sessionBus().asyncCall(msg, 1500);
+#else
+    Q_UNUSED(method); Q_UNUSED(args);
+#endif
     QTimer::singleShot(250, this, &MediaClient::poll);
 }
 
 void MediaClient::setPlayerProperty(const QString &name, const QVariant &value) {
     if (m_service.isEmpty()) return;
+#ifdef QT_DBUS_LIB
     auto msg = QDBusMessage::createMethodCall(m_service, PlayerPath, PropsInterface, "Set");
     msg << PlayerInterface << name << QVariant::fromValue(QDBusVariant(value));
     QDBusConnection::sessionBus().asyncCall(msg, 1500);
+#else
+    Q_UNUSED(name); Q_UNUSED(value);
+#endif
     QTimer::singleShot(250, this, &MediaClient::poll);
 }
 
@@ -371,7 +401,9 @@ void MediaClient::seek(double seconds) {
 }
 void MediaClient::raise() {
     if (m_service.isEmpty()) { launch(m_entry); return; }
+#ifdef QT_DBUS_LIB
     QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(m_service, PlayerPath, "org.mpris.MediaPlayer2", "Raise"), 1500);
+#endif
 }
 void MediaClient::setShuffle(bool on) { m_shuffle = on; emit changed(); setPlayerProperty("Shuffle", on); }
 void MediaClient::cycleLoop() {
@@ -381,9 +413,11 @@ void MediaClient::cycleLoop() {
 }
 void MediaClient::setVolume(double value) { m_volume = qBound(0.0, value, 1.0); emit changed(); setPlayerProperty("Volume", m_volume); }
 void MediaClient::openSpotify() {
+#ifdef QT_DBUS_LIB
     for (const QString &s : QDBusConnection::sessionBus().interface()->registeredServiceNames().value().filter(Prefix + "spotify")) {
         QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(s, PlayerPath, "org.mpris.MediaPlayer2", "Raise"), 1500);
         return;
     }
+#endif
     launch("spotify");
 }

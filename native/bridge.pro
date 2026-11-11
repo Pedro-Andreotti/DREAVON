@@ -1,4 +1,6 @@
-QT += core qml network gui dbus concurrent
+QT += core qml network gui concurrent
+# D-Bus (MPRIS, NetworkManager, UPower, BlueZ) só existe no Linux.
+linux: QT += dbus
 TEMPLATE = lib
 CONFIG += plugin c++17
 TARGET = plasdriaplugin

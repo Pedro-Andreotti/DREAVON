@@ -35,3 +35,13 @@ __pycache__/
 
 # Bibliotecas e plugins gerados
 package/contents/ui/bridge/*.so
+
+# Gerados no Windows (MSVC/CMake)
+*.dll
+*.lib
+*.exp
+*.pdb
+*.ilk
+build-*/
+out/
+CMakeUserPresets.json
