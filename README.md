@@ -55,7 +55,7 @@ O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.m
 - [x] Plano da adaptação e convenção de branches
 - [x] **1.** Compilar o núcleo no Windows (CMake, Qt 6, MSVC) isolando o código exclusivo de Linux ([PR #3](https://github.com/Pedro-Andreotti/DREAVON/pull/3))
 - [x] **2.** Casca própria em janela Qt Quick, sem Plasma, com bandeja, nome e logo do DREAVON e chave da API no Gerenciador de Credenciais ([plano](docs/passo-2-casca.md), [diário](docs/diario/02-casca-windows.md), [PR #6](https://github.com/Pedro-Andreotti/DREAVON/pull/6))
-- [ ] **3.** Partes portáveis: clima, notícias, lembretes, calendário e chat
+- [x] **3.** Partes portáveis: clima, notícias, lembretes, calendário e chat, com os CLIs de IA executados sem passar pelo `cmd.exe` ([diário](docs/diario/03-partes-portaveis.md))
 - [ ] **4.** Sistema: CPU, RAM, disco e bateria; depois temperaturas e GPU
 - [ ] **5.** Rede: tráfego, IP e sinal do Wi-Fi
 - [ ] **6.** Música via SMTC
