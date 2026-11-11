@@ -24,7 +24,7 @@ Um widget para KDE Plasma 6 com chat do Claude, música tocando agora, rede, lem
 | **Rodapé do clima** | Detalhes de hoje (sensação, umidade, vento, chuva, UV e sol), as próximas horas e a semana, com chance de chuva. |
 | **Chat com o Claude** | Respostas em tempo real e formatadas (negrito, listas, código), texto selecionável e botão de copiar. Escolha de modelo (Opus, Sonnet, Fable, Haiku) e de esforço. Anexe imagens e arquivos pelo clipe ou arrastando para o chat. Histórico com busca para retomar conversas do Claude Code (Desktop, CLI e IDE). |
 | **Cotas** | Barras da cota de 5 horas e semanal, com o tempo até renovar. O ícone do painel mostra a cota de 5 h em um anel. |
-| **Música** | Qualquer player compatível com MPRIS (Spotify, YouTube no navegador, VLC, Elisa…): capa, título, artista, barra de progresso clicável, tocar/pausar, anterior e próxima. |
+| **Música** | Qualquer player compatível com MPRIS (Spotify, YouTube no navegador, VLC, Elisa…): capa, título, artista, barra de progresso clicável, tocar/pausar, anterior, próxima, aleatório, repetir e volume. O Spotify tem prioridade e um botão para abrir. A última música fica lembrada com a capa guardada: com o player fechado ou sem internet ela continua aparecendo, e um clique abre o Spotify e retoma do ponto em que parou. |
 | **Rede** | Nome da rede, sinal do Wi-Fi, IP local, latência e gráfico de download/upload em tempo real. |
 | **Lembretes** | Lista rápida com marcar como feito, remover e limpar concluídos. Fica salva nas configurações do widget. |
 | **Sistema** | CPU, GPU, RAM e disco em anéis com cores por nível de uso, mais processador, temperaturas da CPU e do SSD, memória e swap, carga, processos, tempo ligado, bateria e versão do sistema. |
@@ -106,6 +106,7 @@ Pela linha de comando: `./build.sh`, `./install.sh`, `bash tests/run.sh` e `qml6
 - O widget usa o login do Claude Code; não há chaves de API no código.
 - As conversas ficam no Claude Code (`~/.claude/projects`). O Plasdria guarda só o estado de recuperação em `~/.local/share/plasdria/chat-state.json`, privado do usuário.
 - **Perguntas, anexos e contexto enviados são processados pelo Claude.** O widget roda sem plugins, hooks ou servidores MCP do usuário e só libera ferramentas de leitura e busca (`Read`, `Glob`, `Grep`, `WebSearch`, `WebFetch`): não altera arquivos nem executa comandos.
+- A última música tocada fica em `~/.local/share/plasdria/media.json` e as capas em `~/.cache/plasdria/art` (no máximo 150).
 - Clima, cidades e notícias fazem consultas HTTPS. Com a cidade definida nas configurações, a localização por IP não é consultada.
 - A latência é medida abrindo uma conexão com `www.google.com:443` a cada 20 segundos.
 
@@ -118,7 +119,7 @@ package/       Pacote do Plasma: metadados, configurações e interface QML
   contents/ui/       Cartões, chat, layout e recursos visuais
 images/        Logos e ícones originais
 docs/          Banner e capturas do README
-tests/         Testes do chat com um Claude simulado
+tests/         Testes do chat (Claude simulado) e da música (player simulado no D-Bus)
 tools/         Prévia/capturas fora do Plasma
 ```
 

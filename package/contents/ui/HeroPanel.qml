@@ -167,11 +167,16 @@ Rectangle {
             }
             Tile {
                 icon: hero.media.playing ? "media-playback-pause" : "media-playback-start-symbolic"
-                label: hero.media.available ? "Tocando · " + hero.media.player : "Música"
+                label: !hero.media.available ? "Música"
+                     : hero.media.launching ? "Abrindo " + hero.media.player
+                     : !hero.media.live ? "Última · " + hero.media.player
+                     : (hero.media.playing ? "Tocando · " : "Pausado · ") + hero.media.player
                 value: hero.media.available ? (hero.media.title || "Sem título") : "Nada tocando"
-                detail: hero.media.available ? (hero.media.artist || (hero.media.playing ? "Clique para pausar" : "Clique para tocar")) : "Abra um player"
-                clickable: hero.media.available
-                onActivated: hero.media.playPause()
+                detail: !hero.media.available ? (hero.media.spotifyInstalled ? "Clique para abrir o Spotify" : "Abra um player")
+                      : !hero.media.live ? "Clique para continuar"
+                      : (hero.media.artist || (hero.media.playing ? "Clique para pausar" : "Clique para tocar"))
+                clickable: hero.media.available || hero.media.spotifyInstalled
+                onActivated: hero.media.available ? hero.media.playPause() : hero.media.openSpotify()
             }
             Tile {
                 icon: "computer-symbolic"

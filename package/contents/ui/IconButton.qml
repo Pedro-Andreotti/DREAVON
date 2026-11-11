@@ -11,6 +11,7 @@ Rectangle {
     property int size: 26
     property bool active: false
     property bool primary: false
+    property bool colored: false   // mostra o ícone com as cores originais (ex.: logo do Spotify)
     signal clicked()
 
     width: size; height: size; radius: size / 2
@@ -21,7 +22,7 @@ Rectangle {
         anchors.centerIn: parent
         source: button.icon
         width: Math.round(button.size * 0.58); height: width
-        isMask: true
+        isMask: !button.colored
         color: button.primary ? "#101119" : button.active ? button.t.accent : button.t.ink
     }
     HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
