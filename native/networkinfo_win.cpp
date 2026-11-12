@@ -122,6 +122,7 @@ Connection primary() {
         row.InterfaceLuid = a->Luid;
         const bool hardware = GetIfEntry2(&row) == NO_ERROR && row.InterfaceAndOperStatusFlags.HardwareInterface;
         c.valid = true;
+        c.hardware = hardware;
         c.luid = a->Luid.Value;
         c.type = typeLabel(a->IfType, hardware);
         for (auto *u = a->FirstUnicastAddress; u; u = u->Next) {

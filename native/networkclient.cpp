@@ -94,6 +94,8 @@ void NetworkClient::sampleRates() {
     const bool interfacesChanged = ok && QSet<quint64>(current.keyBegin(), current.keyEnd())
         != QSet<quint64>(m_counters.keyBegin(), m_counters.keyEnd());
     m_counters = current;
+    // Última placa física desligada: offline já, sem esperar a medição de latência falhar.
+    if (ok && current.isEmpty() && (m_online || m_latency != -1)) { m_online = false; m_latency = -1; emit changed(); }
     // Sem tabela ou sem interface ativa: indisponível ("—"), nunca 0.
     if (seconds > 0 && matched > 0) { m_down = rx / seconds; m_up = tx / seconds; }
     else { m_down = -1; m_up = -1; }
@@ -105,6 +107,9 @@ void NetworkClient::sampleRates() {
         qCInfo(lcNetwork) << "interfaces contadas:" << current.size() << "ignoradas:" << skipped;
         refreshConnection();
         measureLatency();
+        // Logo após reconectar, o DNS/DHCP ainda pode não estar pronto: mede de novo em 3 s em vez de
+        // esperar o ciclo de 20 s (no teste, o "online" levou ~18 s para voltar sem isso).
+        QTimer::singleShot(3000, this, &NetworkClient::measureLatency);
     }
 #else
     QFile file("/proc/net/dev");
@@ -135,7 +140,10 @@ void NetworkClient::refreshConnection() {
 #ifdef Q_OS_WIN
     // Interface da melhor rota: nome (SSID no Wi-Fi), tipo, IPv4 e sinal. Sem rota, tudo é limpo.
     QElapsedTimer timer; timer.start();
-    const auto c = NetworkInfoWin::primary();
+    auto c = NetworkInfoWin::primary();
+    // Um adaptador virtual (VPN, por exemplo) pode manter uma rota mesmo com Wi-Fi e cabo desligados.
+    // Sem nenhuma placa física ligada, não há saída para a internet: conta como offline.
+    if (c.valid && !c.hardware && m_counters.isEmpty()) c = NetworkInfoWin::Connection();
     bool dirty = false;
     auto set = [&dirty](auto &field, const auto &value) { if (field != value) { field = value; dirty = true; } };
     set(m_name, c.name); set(m_type, c.type); set(m_address, c.address);

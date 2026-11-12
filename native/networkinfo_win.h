@@ -30,6 +30,7 @@ struct Connection {
     QString address;        // primeiro IPv4 da interface
     int strength = -1;      // qualidade do sinal do Wi-Fi (0-100) ou -1
     QString hint;           // por que nome/sinal do Wi-Fi faltam (permissão de localização), ou vazio
+    bool hardware = false;  // placa física; falso para VPN e adaptadores virtuais
     quint64 luid = 0;
 };
 Connection primary();
