@@ -17,6 +17,15 @@
 #include <QDBusVariant>
 #endif
 
+#ifdef Q_OS_WIN
+#include "networkinfo_win.h"
+#include <QLoggingCategory>
+#include <QSet>
+// Diagnóstico da rede no Windows, desligado por padrão (ligar com
+// QT_LOGGING_RULES="dreavon.network.info=true"). Só contagens e durações, sem nomes, IPs nem ids.
+Q_LOGGING_CATEGORY(lcNetwork, "dreavon.network", QtWarningMsg)
+#endif
+
 namespace {
 #ifdef QT_DBUS_LIB
 const QString NM = QStringLiteral("org.freedesktop.NetworkManager");
@@ -35,10 +44,12 @@ void nmProperty(QObject *context, const QString &path, const QString &interface,
 }
 #endif
 
+#ifndef Q_OS_WIN
 bool countedInterface(const QString &name) {
     return name != "lo" && !name.startsWith("veth") && !name.startsWith("docker") && !name.startsWith("br-")
         && !name.startsWith("virbr") && !name.startsWith("vnet");
 }
+#endif
 }
 
 NetworkClient::NetworkClient(QObject *parent) : QObject(parent) {
@@ -63,6 +74,39 @@ QString NetworkClient::formatRate(double bytes) {
 }
 
 void NetworkClient::sampleRates() {
+#ifdef Q_OS_WIN
+    // Diferença dos contadores de cada interface física ativa entre duas leituras. Só soma interfaces
+    // presentes nas duas: uma interface que surge ou some (troca Wi-Fi/cabo) não gera pico falso.
+    QList<NetworkInfoWin::Counter> list;
+    int skipped = 0;
+    const bool ok = NetworkInfoWin::counters(&list, &skipped);
+    const double seconds = m_clock.isValid() ? m_clock.restart() / 1000.0 : 0;
+    if (!m_clock.isValid()) m_clock.start();
+    QHash<quint64, QPair<quint64, quint64>> current;
+    quint64 rx = 0, tx = 0;
+    int matched = 0;
+    for (const auto &c : list) {
+        current.insert(c.luid, {c.rx, c.tx});
+        const auto it = m_counters.constFind(c.luid);
+        if (it == m_counters.cend() || c.rx < it->first || c.tx < it->second) continue;
+        rx += c.rx - it->first; tx += c.tx - it->second; ++matched;
+    }
+    const bool interfacesChanged = ok && QSet<quint64>(current.keyBegin(), current.keyEnd())
+        != QSet<quint64>(m_counters.keyBegin(), m_counters.keyEnd());
+    m_counters = current;
+    // Sem tabela ou sem interface ativa: indisponível ("—"), nunca 0.
+    if (seconds > 0 && matched > 0) { m_down = rx / seconds; m_up = tx / seconds; }
+    else { m_down = -1; m_up = -1; }
+    m_downHistory.removeFirst(); m_downHistory.append(qMax(0.0, m_down));
+    m_upHistory.removeFirst(); m_upHistory.append(qMax(0.0, m_up));
+    emit ratesChanged();
+    // Interface ligada ou desligada: atualiza nome, tipo e latência já, sem esperar o próximo ciclo.
+    if (interfacesChanged && seconds > 0) {
+        qCInfo(lcNetwork) << "interfaces contadas:" << current.size() << "ignoradas:" << skipped;
+        refreshConnection();
+        measureLatency();
+    }
+#else
     QFile file("/proc/net/dev");
     if (!file.open(QIODevice::ReadOnly)) return;
     quint64 rx = 0, tx = 0;
@@ -84,9 +128,26 @@ void NetworkClient::sampleRates() {
     }
     m_rx = rx; m_tx = tx;
     emit ratesChanged();
+#endif
 }
 
 void NetworkClient::refreshConnection() {
+#ifdef Q_OS_WIN
+    // Interface da melhor rota: nome (SSID no Wi-Fi), tipo, IPv4 e sinal. Sem rota, tudo é limpo.
+    QElapsedTimer timer; timer.start();
+    const auto c = NetworkInfoWin::primary();
+    bool dirty = false;
+    auto set = [&dirty](auto &field, const auto &value) { if (field != value) { field = value; dirty = true; } };
+    set(m_name, c.name); set(m_type, c.type); set(m_address, c.address);
+    set(m_strength, c.strength); set(m_hint, c.hint);
+    if (!c.valid) { set(m_online, false); set(m_latency, -1); }
+    const bool switched = c.luid != m_primaryLuid && m_primaryLuid != 0;
+    m_primaryLuid = c.luid;
+    if (dirty) emit changed();
+    if (switched) measureLatency();
+    qCInfo(lcNetwork) << "conexão principal:" << (c.valid ? "sim" : "não") << "Wi-Fi bloqueado:"
+                      << !c.hint.isEmpty() << "em" << timer.elapsed() << "ms";
+#else
     QString address;
     for (const auto &iface : QNetworkInterface::allInterfaces()) {
         if (!(iface.flags() & QNetworkInterface::IsUp) || !(iface.flags() & QNetworkInterface::IsRunning) || iface.flags() & QNetworkInterface::IsLoopBack) continue;
@@ -126,6 +187,7 @@ void NetworkClient::refreshConnection() {
             });
         });
     });
+#endif
 #endif
 }
 
