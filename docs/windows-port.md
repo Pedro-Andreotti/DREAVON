@@ -1,15 +1,17 @@
 # DREAVON — plano de adaptação para Windows
 
 Base: [Plasdria](https://github.com/PietroAlexandria/Plasdria) (widget KDE Plasma 6, QML + C++/Qt 6).
-Levantamento feito a partir do README e de uma busca por APIs específicas de Linux em `native/*.cpp`. **Os itens abaixo são hipóteses de trabalho e precisam ser validados na implementação.**
+Levantamento feito a partir do README e de uma busca por APIs específicas de Linux em `native/*.cpp`. O plano começou com hipóteses; o que foi feito e testado em cada passo está nos [diários](diario/).
+
+> **Estado no 1.0.0:** os passos 1 a 7 estão concluídos. A versão 1.0.0 é para **uso pessoal no Windows**: sem instalador e sem assinatura, aberta pelo `qml.exe` do Qt com os scripts de `tools/`. Ficaram fora: temperatura da CPU, bateria do fone Bluetooth e de aparelhos BLE, troca do shim do Kirigami e testes no Linux. Ver o [CHANGELOG](../CHANGELOG.md) e o [diário 11](diario/11-release-1-0-0.md).
 
 ## Visão geral
 
 | Camada | Estado | Observação |
 | --- | --- | --- |
-| Interface QML (`package/contents/ui`) | Reaproveitável | Usa Kirigami e `PlasmoidItem`/Plasma; precisa de uma janela própria (Qt Quick) e troca dos componentes específicos do Plasma |
-| Núcleo C++ (`native/`) | Parcialmente portável | Parte usa Qt puro (rede, JSON, `QProcess`); parte lê `/proc`, `/sys` e D-Bus |
-| Empacotamento (`install.sh`, `build.sh`, `kpackagetool6`) | Reescrever | Sem Plasma no Windows; trocar por CMake/qmake + instalador |
+| Interface QML (`package/contents/ui`) | Feito (passo 2) | Janela própria em Qt Quick, com bandeja; Kirigami substituído por um shim só do Windows |
+| Núcleo C++ (`native/`) | Feito (passos 1 a 7) | Código do Windows atrás de `Q_OS_WIN`; D-Bus atrás de `QT_DBUS_LIB`; Linux sem mudança de comportamento (não testado) |
+| Empacotamento (`install.sh`, `build.sh`, `kpackagetool6`) | Uso local (passo 7b) | CMake + `build-windows.ps1`; sem instalador nem assinatura; atalho e início com o Windows por `tools/install-local.ps1` |
 
 ## Mapeamento Linux → Windows
 
@@ -42,7 +44,7 @@ Levantamento feito a partir do README e de uma busca por APIs específicas de Li
 
 ## Pontos em aberto
 
-- Qual casca usar: janela flutuante, barra lateral ou widget na área de trabalho.
-- Temperaturas: aceitar um valor aproximado ou depender de uma ferramenta de terceiros.
+- ~~Qual casca usar: janela flutuante, barra lateral ou widget na área de trabalho~~: janela própria com bandeja (passo 2).
+- Temperaturas: a do SSD veio do driver de armazenamento (passo 4); a da CPU segue indisponível sem administrador ou ferramenta de terceiros (fora do 1.0.0).
 - ~~Compilador: MSVC ou MinGW (impacta o acesso a WinRT)~~: MSVC desde o passo 1; o WinRT é usado por C++/WinRT do Windows SDK (passo 6).
 - ~~Nome, ícone e identidade visual do DREAVON~~: trocados no passo 2.
