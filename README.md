@@ -49,7 +49,7 @@ O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.m
 
 **Compilar e abrir no Windows** (Qt 6, MSVC, CMake e Ninja instalados): `.\build-windows.ps1 -Run`. Sem `-Run`, só compila o núcleo (`package\contents\ui\bridge\dreavonplugin.dll`). Detalhes em [`docs/diario/02-casca-windows.md`](docs/diario/02-casca-windows.md).
 
-**Uso local** (atalho no Menu Iniciar, nome e ícone do DREAVON nas notificações, início com o Windows opcional): `.\tools\install-local.ps1` depois de compilar; desfazer com `.\tools\uninstall-local.ps1`. Detalhes em [`docs/diario/10-uso-local-windows.md`](docs/diario/10-uso-local-windows.md).
+**Uso local** (atalho no Menu Iniciar, nome e ícone do DREAVON nas notificações, início com o Windows opcional): `.\tools\install-local.ps1` depois de compilar; desfazer com `.\tools\uninstall-local.ps1`. Detalhes em [`docs/diario/10-uso-local-windows.md`](docs/diario/10-uso-local-windows.md). Passo a passo para abrir o app manualmente (quando ele não inicia com o Windows): [`docs/abrir-no-windows.md`](docs/abrir-no-windows.md).
 
 ## Roadmap
 

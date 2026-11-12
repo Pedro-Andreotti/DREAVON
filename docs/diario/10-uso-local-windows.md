@@ -13,7 +13,7 @@ O plano original do passo 7b era um instalador com o executável assinado. **O e
 - o `dreavon.exe` hoje grava a pasta do código-fonte (`DREAVON_SOURCE_DIR`) no binário, o que não pode ir para um pacote distribuído;
 - a assinatura seria obrigatória para quem tem o Controle Inteligente ligado.
 
-O Inno Setup 6 ficou instalado na máquina desse teste e não é usado pelo projeto.
+O Inno Setup 6, instalado para esse teste, foi desinstalado depois (`winget uninstall JRSoftware.InnoSetup`).
 
 ## O que foi implementado
 | Arquivo | Mudança | Motivo |
@@ -75,6 +75,9 @@ Agora que há um AUMID registrado, um toast WinRT (`Windows.UI.Notifications`, p
 - **README:** cita o MIT do DREAVON, do Plasdria e do PRAGUS (arquivo `LICENSE`) e a LGPL-3.0-or-later dos ícones Breeze (aviso em `windows/qml/org/kde/kirigami/icons/COPYING-ICONS`).
 - **Qt:** a LGPL-3.0 ainda não aparecia no README e foi acrescentada. No uso local, o app usa as DLLs da instalação do Qt por ligação dinâmica, sem modificá-las e sem redistribuí-las.
 
+## Como abrir manualmente
+Passo a passo para quando o DREAVON não iniciar com o Windows: [`docs/abrir-no-windows.md`](../abrir-no-windows.md).
+
 ## Não verificado
 - **Início com o Windows de verdade** (sair e entrar no Windows): o valor da chave Run foi conferido, e o `--bandeja` foi testado só pela lógica do `dreavon.qml`, sem um logon real.
 - **Console num terminal que não seja o padrão** (por exemplo, o Windows Terminal como console padrão): nesta máquina, o console do atalho não apareceu. Com outro terminal configurado, o esconder pode não funcionar.
@@ -83,5 +86,4 @@ Agora que há um AUMID registrado, um toast WinRT (`Windows.UI.Notifications`, p
 
 ## Pendências
 - **Toast WinRT com botões:** se aprovado (proposta acima).
-- **Inno Setup 6:** ficou instalado nesta máquina por causa da tentativa descartada; pode ser removido (`winget uninstall JRSoftware.InnoSetup`).
 - **Se um dia houver distribuição:** retomar o instalador. Isso inclui assinatura com uma AC ou o Trusted Signing, `windeployqt`, os textos LGPL/GPL junto das DLLs e o build sem `DREAVON_SOURCE_DIR`.
