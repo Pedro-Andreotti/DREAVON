@@ -42,7 +42,7 @@ Estas são as funções da base Linux que o DREAVON pretende ter no Windows. O p
 | Música | MPRIS (D-Bus) | SMTC, o controle de mídia do Windows |
 | Rede | `/proc/net/dev` e NetworkManager | IP Helper e WLAN API |
 | Sistema | CPU, GPU, RAM, disco, temperaturas e bateria via `/proc` e `/sys` | PDH, `GlobalMemoryStatusEx` e API de energia do Windows |
-| Lembretes com alarme | notificação do sistema | notificação toast do Windows |
+| Lembretes com alarme | notificação do sistema | notificação (toast) pelo ícone da bandeja — feito |
 | Calendário, clima e notícias | iCal, Open-Meteo e Google News | já dependem só de rede, devem portar com pouco ajuste |
 
 O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.md`](docs/windows-port.md).
@@ -60,7 +60,9 @@ O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.m
 - [x] **4b.** Dispositivos: USB e Bluetooth pela lista do Windows e bateria do mouse Logitech pelo receptor (HID++, só leitura) — a bateria do fone Bluetooth segue em aberto ([diário](docs/diario/05-dispositivos-windows.md))
 - [x] **5.** Rede: tráfego (só placas físicas), IP, tipo, nome e sinal do Wi-Fi, latência e modo offline ([diário](docs/diario/06-rede-windows.md))
 - [x] **6.** Música via SMTC (C++/WinRT): Spotify, navegadores e outros players, com capa, posição e controles ([diário](docs/diario/07-musica-windows.md))
-- [ ] **7.** Notificações, atalho global, bandeja do sistema e instalador
+- [ ] **7.** Extras do Windows:
+  - [x] **7a.** Notificações dos lembretes (toast, agrupadas, com indicador no cartão) e atalho global configurável (Ctrl+Shift+Alt+D) ([diário](docs/diario/08-notificacoes-atalho-windows.md)); a bandeja existe desde o passo 2
+  - [ ] **7b.** Instalador e assinatura do executável
 - [ ] Identidade final: ícone do aplicativo e telas
 
 ## Tecnologias
