@@ -18,6 +18,38 @@ ConfigPage {
     property alias cfg_customModel: customModel.text
     property string cfg_newsTopic
     property alias cfg_calendarUrls: calendarUrls.text
+    property string cfg_globalShortcut
+
+    // Atalho global (GlobalHotkey), definido pela SettingsWindow ao carregar a página. Só no Windows.
+    property var hotkey: null
+    readonly property bool hotkeySupported: !!hotkey && hotkey.supported
+    readonly property string defaultShortcut: "Ctrl+Shift+Alt+D"
+    property string capturing: ""   // modificadores já pressionados durante a captura
+    // Situação do atalho escolhido: o registrado (aceito ou recusado) ou o teste de um novo.
+    readonly property string shortcutMessage: {
+        if (!hotkeySupported) return ""
+        if (!cfg_globalShortcut) return "Sem atalho global."
+        if (cfg_globalShortcut === hotkey.sequence && !hotkey.paused)
+            return hotkey.status || (hotkey.registered ? "Ativo." : "")
+        const problem = hotkey.check(cfg_globalShortcut)
+        return problem || "Livre. Clique em Aplicar ou OK para usar."
+    }
+    readonly property bool shortcutOk: shortcutMessage === "Ativo." || shortcutMessage.startsWith("Livre")
+    function keyName(key) {
+        if (key >= Qt.Key_A && key <= Qt.Key_Z) return String.fromCharCode(key)
+        if (key >= Qt.Key_0 && key <= Qt.Key_9) return String.fromCharCode(key)
+        if (key >= Qt.Key_F1 && key <= Qt.Key_F24) return "F" + (key - Qt.Key_F1 + 1)
+        if (key === Qt.Key_Space) return "Espaço"
+        return ""
+    }
+    function modifierNames(mods) {
+        const out = []
+        if (mods & Qt.ControlModifier) out.push("Ctrl")
+        if (mods & Qt.ShiftModifier) out.push("Shift")
+        if (mods & Qt.AltModifier) out.push("Alt")
+        if (mods & Qt.MetaModifier) out.push("Win")
+        return out
+    }
 
     // Cofre de credenciais (Windows). Definidos pela SettingsWindow ao carregar a página.
     // Sem cofre (outras plataformas), a chave segue no campo cfg_customApiKey, como antes.
@@ -289,6 +321,44 @@ ConfigPage {
         }
         QQC2.Label {
             text: "Um link por linha. No Google Agenda: Configurações da agenda → “Endereço secreto no formato iCal”. Esse endereço dá acesso à sua agenda: não o compartilhe. Os eventos aparecem no calendário e atualizam a cada 15 minutos."
+            wrapMode: Text.Wrap; opacity: 0.7
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 22
+        }
+
+        Kirigami.Separator { visible: page.hotkeySupported; Kirigami.FormData.isSection: true; Kirigami.FormData.label: "Atalho global" }
+
+        QQC2.TextField {
+            id: shortcutField
+            visible: page.hotkeySupported
+            Kirigami.FormData.label: "Mostrar/ocultar o painel:"
+            readOnly: true
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 12
+            text: activeFocus ? (page.capturing ? page.capturing + "+…" : "Pressione a combinação…") : (page.cfg_globalShortcut || "(nenhum)")
+            // Durante a captura o atalho atual fica solto, para a combinação chegar aqui.
+            onActiveFocusChanged: { page.capturing = ""; if (page.hotkey) page.hotkey.paused = activeFocus }
+            Keys.onPressed: event => {
+                event.accepted = true
+                if (event.key === Qt.Key_Escape) { shortcutField.focus = false; return }
+                if (event.key === Qt.Key_Backspace || event.key === Qt.Key_Delete) {
+                    page.cfg_globalShortcut = page.defaultShortcut; shortcutField.focus = false; return
+                }
+                const mods = page.modifierNames(event.modifiers)
+                const key = page.keyName(event.key)
+                if (!key) { page.capturing = mods.join("+"); return }   // só modificadores, por enquanto
+                page.cfg_globalShortcut = mods.concat([key]).join("+")
+                shortcutField.focus = false
+            }
+        }
+        QQC2.Label {
+            visible: page.hotkeySupported && page.shortcutMessage !== ""
+            text: page.shortcutMessage
+            color: page.shortcutOk ? "#5fd38a" : "#ff8a7a"
+            wrapMode: Text.Wrap
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 22
+        }
+        QQC2.Label {
+            visible: page.hotkeySupported
+            text: "Clique no campo e pressione a combinação (Ctrl, Alt ou Win com uma letra, um número, F1–F24 ou Espaço). Esc cancela; Backspace volta ao padrão (" + page.defaultShortcut + ")."
             wrapMode: Text.Wrap; opacity: 0.7
             Layout.preferredWidth: Kirigami.Units.gridUnit * 22
         }

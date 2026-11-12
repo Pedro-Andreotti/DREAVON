@@ -14,6 +14,8 @@ Window {
     property string credentialTarget: ""
     // Sem cofre (outras plataformas): a chave fica em texto puro nas configurações, como antes.
     property var legacyKeyStore: null
+    // Atalho global (GlobalHotkey), para a página Geral mostrar a situação e testar combinações.
+    property var hotkey: null
     signal applied()
     title: "Configurações"
     width: 720; height: 640
@@ -23,7 +25,7 @@ Window {
 
     readonly property var keys: [
         "userName", "autoLocation", "cityName", "cityLatitude", "cityLongitude", "defaultProvider", "defaultModel",
-        "defaultEffort", "customApiUrl", "customModel", "newsTopic", "calendarUrls",
+        "defaultEffort", "customApiUrl", "customModel", "newsTopic", "calendarUrls", "globalShortcut",
         "showWeather", "showSystem", "showConnections", "showMedia", "showNetwork", "showCalendar", "showReminders", "showNews",
         "accentColor", "backgroundOpacity", "animations"
     ]
@@ -41,6 +43,7 @@ Window {
     }
 
     function load(page) {
+        if ("hotkey" in page) page.hotkey = hotkey
         for (const key of keys) if (("cfg_" + key) in page) page["cfg_" + key] = cfg[key]
         if ("credentials" in page) {
             page.credentials = credentials; page.credentialTarget = credentialTarget
