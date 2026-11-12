@@ -22,6 +22,7 @@ add_library(dreavonplugin MODULE
     native/networkclient.cpp native/networkclient.h
     native/credentialstore.cpp native/credentialstore.h
     native/globalhotkey.cpp native/globalhotkey.h
+    native/autostart.cpp native/autostart.h
 )
 
 target_link_libraries(dreavonplugin PRIVATE

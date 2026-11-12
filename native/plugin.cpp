@@ -19,8 +19,10 @@
 #include "networkclient.h"
 #include "credentialstore.h"
 #include "globalhotkey.h"
+#include "autostart.h"
 #ifdef Q_OS_WIN
 #include <qt_windows.h>   // CREATE_NEW_CONSOLE e STARTUPINFO, para abrir o CLI numa janela de console
+#include <shobjidl.h>     // SetCurrentProcessExplicitAppUserModelID
 #endif
 
 class Messages : public QAbstractListModel {
@@ -1899,12 +1901,16 @@ class DreavonPlugin : public QQmlExtensionPlugin {
     Q_PLUGIN_METADATA(IID QQmlExtensionInterface_iid)
 public:
     void registerTypes(const char *uri) override {
+#ifdef Q_OS_WIN
+        prepareLocalLaunch();
+#endif
         qmlRegisterType<ClaudeClient>(uri,1,0,"ClaudeClient");
         qmlRegisterType<ClaudeClient>(uri,1,0,"ChatClient");
         qmlRegisterType<DashboardClient>(uri,1,0,"DashboardClient");
         qmlRegisterType<MediaClient>(uri,1,0,"MediaClient");
         qmlRegisterType<NetworkClient>(uri,1,0,"NetworkClient");
         qmlRegisterType<GlobalHotkey>(uri,1,0,"GlobalHotkey");
+        qmlRegisterType<Autostart>(uri,1,0,"Autostart");
         qmlRegisterType<CredentialStore>(uri,1,0,"CredentialStore");
 #ifdef Q_OS_WIN
         // Aberto pelo qml.exe, o app herdaria o ícone do Qt: usa o do DREAVON em todas as janelas.
@@ -1914,5 +1920,29 @@ public:
             QGuiApplication::setWindowIcon(QIcon(icon));
 #endif
     }
+
+#ifdef Q_OS_WIN
+private:
+    // Uso local (tools/install-local.ps1): o DREAVON abre pelo qml.exe assinado do Qt, por um atalho do
+    // Menu Iniciar. O plugin é carregado antes de qualquer janela, então ajusta aqui o que um atalho não
+    // consegue passar ao qml.exe.
+    static void prepareLocalLaunch() {
+        // 1. Estilo Fusion (respeita a paleta escura das Configurações), como o build-windows.ps1 -Run.
+        //    Os controles escolhem o estilo só ao carregar o QtQuick.Controls, que vem depois deste plugin.
+        if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) qputenv("QT_QUICK_CONTROLS_STYLE", "Fusion");
+        // 2. O qml.exe é um programa de console: esconde a janela de console, mas só se ela for só nossa
+        //    (aberta pelo atalho). Rodando de um terminal, o console é do terminal e fica como está.
+        if (HWND console = GetConsoleWindow()) {
+            DWORD processes[4];
+            if (GetConsoleProcessList(processes, 4) == 1) ShowWindow(console, SW_HIDE);
+        }
+        // 3. AppUserModelID do atalho "DREAVON" do Menu Iniciar: o Windows passa a mostrar o nome e o
+        //    ícone do DREAVON nas notificações e na barra de tarefas, em vez dos do qml.exe. Só com o
+        //    atalho criado pelo script; sem ele, o app segue com a identidade do qml.exe.
+        const QString shortcut = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation)
+                                 + QStringLiteral("/DREAVON.lnk");
+        if (QFileInfo::exists(shortcut)) SetCurrentProcessExplicitAppUserModelID(L"DREAVON.Desktop");
+    }
+#endif
 };
 #include "plugin.moc"
