@@ -14,7 +14,11 @@ build/
 .env
 .env.*
 !.env.example
-.claude/
+# Claude Code: só a configuração compartilhada do projeto (plugins por referência e skills).
+# Configuração local, credenciais e dados de sessão continuam fora.
+.claude/*
+!.claude/settings.json
+!.claude/skills/
 auth.json
 credentials.json
 *.pem

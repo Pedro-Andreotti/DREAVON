@@ -33,5 +33,12 @@ Mensagens curtas, em português, no imperativo ou descrevendo a mudança (por ex
 ## Documentação
 Cada implementação concluída é registrada nas notas do projeto (Obsidian: "Log de implementações"), com o link do Pull Request.
 
+## Claude Code
+A configuração compartilhada fica em `.claude/`:
+- `.claude/settings.json`: os plugins usados no projeto (`claude-mem`, `postman`, `claude-code-setup`), só por referência aos marketplaces. Ao abrir o repositório, o Claude Code oferece instalá-los.
+- `.claude/skills/`: cópias das skills `design-system` e `task-observer`, com as licenças originais (ver `.claude/skills/README.md`).
+
+Não versione `settings.local.json`, credenciais nem variáveis de ambiente: o `.gitignore` já deixa de fora tudo o que não for esses dois itens.
+
 ## Créditos
 O DREAVON é derivado do [Plasdria](https://github.com/PietroAlexandria/Plasdria) (MIT). Mantenha os avisos de copyright do [LICENSE](LICENSE).
