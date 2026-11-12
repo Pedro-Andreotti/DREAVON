@@ -17,6 +17,8 @@ QtObject {
             Qt.exit(1)
             return
         }
-        entry.window = component.createObject(null)
+        // "-- --bandeja" (início com o Windows): abre só na bandeja, sem mostrar a janela.
+        const tray = Qt.application.arguments.indexOf("--bandeja") >= 0
+        entry.window = tray ? component.createObject(null, {visible: false}) : component.createObject(null)
     }
 }

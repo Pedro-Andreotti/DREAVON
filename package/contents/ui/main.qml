@@ -60,6 +60,7 @@ Window {
         credentialTarget: settings.customApiKeyTarget
         legacyKeyStore: legacyKeySettings
         hotkey: globalHotkey
+        autostart: autostartBackend
         onApplied: root.reloadLegacyKey()
     }
 
@@ -145,6 +146,9 @@ Window {
         sequence: root.cfg.globalShortcut || ""
         onActivated: root.togglePanel()
     }
+
+    // "Iniciar com o Windows" (chave Run do usuário); só no Windows (ver native/autostart.h).
+    Backend.Autostart { id: autostartBackend }
 
     // Windows: a notificação sai pelo ícone da bandeja (o Windows 10/11 a mostra como toast).
     Connections {

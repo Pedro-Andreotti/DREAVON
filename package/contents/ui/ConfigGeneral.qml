@@ -20,6 +20,10 @@ ConfigPage {
     property alias cfg_calendarUrls: calendarUrls.text
     property string cfg_globalShortcut
 
+    // "Iniciar com o Windows" (Autostart), definido pela SettingsWindow. Só no Windows, aberto pelo atalho ou pelo build-windows.ps1 -Run.
+    property var autostart: null
+    readonly property bool autostartSupported: !!autostart && autostart.supported
+
     // Atalho global (GlobalHotkey), definido pela SettingsWindow ao carregar a página. Só no Windows.
     property var hotkey: null
     readonly property bool hotkeySupported: !!hotkey && hotkey.supported
@@ -321,6 +325,24 @@ ConfigPage {
         }
         QQC2.Label {
             text: "Um link por linha. No Google Agenda: Configurações da agenda → “Endereço secreto no formato iCal”. Esse endereço dá acesso à sua agenda: não o compartilhe. Os eventos aparecem no calendário e atualizam a cada 15 minutos."
+            wrapMode: Text.Wrap; opacity: 0.7
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 22
+        }
+
+        Kirigami.Separator { visible: page.autostartSupported; Kirigami.FormData.isSection: true; Kirigami.FormData.label: "Inicialização" }
+
+        QQC2.CheckBox {
+            id: autostartBox
+            visible: page.autostartSupported
+            Kirigami.FormData.label: "Iniciar com o Windows:"
+            text: "Abrir o DREAVON na bandeja ao entrar no Windows"
+            checked: page.autostartSupported && page.autostart.enabled
+            // Vale na hora (é uma chave do Windows, não uma configuração do app).
+            onToggled: page.autostart.enabled = checked
+        }
+        QQC2.Label {
+            visible: page.autostartSupported
+            text: "Desligado por padrão. Usa só a lista de inicialização do seu usuário (Configurações do Windows > Aplicativos > Inicialização), sem serviço nem tarefa agendada."
             wrapMode: Text.Wrap; opacity: 0.7
             Layout.preferredWidth: Kirigami.Units.gridUnit * 22
         }

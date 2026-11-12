@@ -49,6 +49,8 @@ O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.m
 
 **Compilar e abrir no Windows** (Qt 6, MSVC, CMake e Ninja instalados): `.\build-windows.ps1 -Run`. Sem `-Run`, só compila o núcleo (`package\contents\ui\bridge\dreavonplugin.dll`). Detalhes em [`docs/diario/02-casca-windows.md`](docs/diario/02-casca-windows.md).
 
+**Uso local** (atalho no Menu Iniciar, nome e ícone do DREAVON nas notificações, início com o Windows opcional): `.\tools\install-local.ps1` depois de compilar; desfazer com `.\tools\uninstall-local.ps1`. Detalhes em [`docs/diario/10-uso-local-windows.md`](docs/diario/10-uso-local-windows.md). Passo a passo para abrir o app manualmente (quando ele não inicia com o Windows): [`docs/abrir-no-windows.md`](docs/abrir-no-windows.md).
+
 ## Roadmap
 
 - [x] Repositório próprio, com o histórico e os créditos do Plasdria
@@ -62,7 +64,7 @@ O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.m
 - [x] **6.** Música via SMTC (C++/WinRT): Spotify, navegadores e outros players, com capa, posição e controles ([diário](docs/diario/07-musica-windows.md))
 - [ ] **7.** Extras do Windows:
   - [x] **7a.** Notificações dos lembretes (toast, agrupadas, com indicador no cartão) e atalho global configurável (Ctrl+Shift+Alt+D) ([diário](docs/diario/08-notificacoes-atalho-windows.md)); a bandeja existe desde o passo 2
-  - [ ] **7b.** Instalador e assinatura do executável
+  - [x] **7b.** Uso local, sem instalador nem assinatura: atalho no Menu Iniciar com AUMID próprio (toast com o nome "DREAVON") e início com o Windows opcional ([diário](docs/diario/10-uso-local-windows.md))
 - [x] Desempenho: CPU em repouso de ~42% para 2–10% de um núcleo com a janela aberta e ~1% oculta, com a animação do clima a 15–20 quadros por segundo e só em foco ([diário](docs/diario/09-uso-de-cpu-windows.md))
 - [ ] Identidade final: ícone do aplicativo e telas
 
@@ -98,4 +100,4 @@ Cada etapa do roadmap é uma branch, com Pull Request e *squash merge*. As regra
 
 ## Créditos e licença
 
-[MIT](LICENSE). O DREAVON é uma adaptação do [Plasdria](https://github.com/PietroAlexandria/Plasdria) (© Pietro Alexandria, MIT), que inclui código do [PRAGUS](https://github.com/gustavoprad0/PRAGUS) (MIT). Os avisos de copyright originais foram mantidos. No Windows, os ícones da interface são um subconjunto do tema [Breeze](https://invent.kde.org/frameworks/breeze-icons) (© Uri Herrera e outros, LGPL-3.0-or-later), em `windows/qml/org/kde/kirigami/icons/`, com o aviso em `COPYING-ICONS`. Projeto independente, sem afiliação com a Anthropic, a Microsoft, o KDE ou os provedores de dados.
+[MIT](LICENSE). O DREAVON é uma adaptação do [Plasdria](https://github.com/PietroAlexandria/Plasdria) (© Pietro Alexandria, MIT), que inclui código do [PRAGUS](https://github.com/gustavoprad0/PRAGUS) (MIT). Os avisos de copyright originais foram mantidos. No Windows, os ícones da interface são um subconjunto do tema [Breeze](https://invent.kde.org/frameworks/breeze-icons) (© Uri Herrera e outros, LGPL-3.0-or-later), em `windows/qml/org/kde/kirigami/icons/`, com o aviso em `COPYING-ICONS`. O DREAVON usa o [Qt 6](https://www.qt.io/) (© The Qt Company e colaboradores) sob a LGPL-3.0, por ligação dinâmica às DLLs da instalação do Qt, sem modificá-las. Projeto independente, sem afiliação com a Anthropic, a Microsoft, o KDE ou os provedores de dados.
