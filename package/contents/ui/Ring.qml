@@ -15,7 +15,10 @@ Item {
     implicitWidth: 58; implicitHeight: 58 + (caption ? 16 : 0)
 
     property real shown: Math.max(0, value)
-    Behavior on shown { NumberAnimation { duration: ring.duration; easing.type: Easing.OutCubic } }
+    // A transição só roda com a janela à vista: oculta ou minimizada, o valor muda direto, sem
+    // redesenhar o Canvas a cada passo da animação (a cada 2 s, para ninguém ver).
+    readonly property bool onScreen: Window.visibility !== Window.Hidden && Window.visibility !== Window.Minimized
+    Behavior on shown { enabled: ring.onScreen; NumberAnimation { duration: ring.duration; easing.type: Easing.OutCubic } }
     onShownChanged: canvas.requestPaint()
     onColorChanged: canvas.requestPaint()
 
