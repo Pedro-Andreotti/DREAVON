@@ -20,7 +20,12 @@ Card {
         Kirigami.Icon { source: card.signalIcon; implicitWidth: 20; implicitHeight: 20; isMask: true; color: card.net.online ? card.t.accent : card.t.bad }
         ColumnLayout {
             spacing: 0; Layout.fillWidth: true
-            Text { text: card.net.connectionName || (card.net.online ? "Conectado" : "Sem conexão"); color: card.t.ink; font.pixelSize: 13; font.weight: Font.DemiBold; elide: Text.ElideRight; Layout.fillWidth: true }
+            Text {
+                text: card.net.connectionName || (card.net.online ? "Conectado" : "Sem conexão"); color: card.t.ink; font.pixelSize: 13; font.weight: Font.DemiBold; elide: Text.ElideRight; Layout.fillWidth: true
+                // No Windows, explica por que o nome e o sinal do Wi-Fi faltam (permissão de localização).
+                HoverHandler { id: hintHover; enabled: !!card.net.connectionHint }
+                ToolTipText { visible: hintHover.hovered && !!card.net.connectionHint; t: card.t; maxWidth: 260; text: card.net.connectionHint || "" }
+            }
             Text {
                 text: [card.net.connectionType, card.net.signalStrength >= 0 ? "sinal " + card.net.signalStrength + "%" : "", card.net.localAddress].filter(Boolean).join(" · ")
                 color: card.t.muted; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true
