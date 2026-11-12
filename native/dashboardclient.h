@@ -7,6 +7,11 @@
 #include <QProcess>
 #include <QVariantList>
 #include <QJsonObject>
+#ifdef Q_OS_WIN
+#include <QElapsedTimer>
+#include <QFutureWatcher>
+#include <QHash>
+#endif
 
 class DashboardClient : public QObject {
     Q_OBJECT
@@ -116,6 +121,12 @@ private:
     QJsonObject m_lastWeatherData;
     QTimer m_newsTimer;
     QProcess m_gpuProcess;
+#ifdef Q_OS_WIN
+    // Bateria de aparelhos Logitech por receptor (HID++), lida em segundo plano a cada 60 s.
+    QHash<QString, QVariantMap> m_logitechBatteries;   // ContainerId -> {percent, charging, kind}
+    QFutureWatcher<QList<QVariantMap>> *m_logitechWatcher = nullptr;
+    QElapsedTimer m_devicesClock, m_logitechClock;
+#endif
     QString m_greeting;
     QString m_date;
     QString m_time;

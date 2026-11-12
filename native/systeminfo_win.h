@@ -45,8 +45,22 @@ struct Peripheral {
     QString category;    // categoria do Windows (ex.: "Audio.Headphone"), para diagnóstico
     int percent = -1;
     bool bluetooth = false;
+    QString container;   // ContainerId do aparelho (uso interno, não vai para a interface)
 };
 QList<Peripheral> peripherals();
+
+// Bateria de aparelhos Logitech ligados por receptor USB (LIGHTSPEED/Unifying), pelo protocolo HID++ 2.0
+// na interface HID do receptor (hid.dll), sem administrador e sem o software da Logitech.
+// Só CONSULTAS: Root.GetFeature, UnifiedBattery.GetStatus (0x1004) ou BatteryStatus (0x1000) e
+// DeviceNameType.GetDeviceType (0x0005). Nada que altere configuração, firmware, iluminação ou perfil.
+// Pode levar até alguns segundos (espera respostas): chame fora da thread da interface.
+struct LogitechBattery {
+    QString container;   // ContainerId do receptor, para juntar com peripherals()
+    int percent = -1;
+    bool charging = false;
+    QString kind;        // "Mouse", "Teclado", "Fone" ou vazio, pelo tipo que o aparelho informa
+};
+QList<LogitechBattery> logitechBatteries();
 
 struct Power {
     bool valid = false;        // GetSystemPowerStatus respondeu
