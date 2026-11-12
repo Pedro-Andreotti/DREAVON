@@ -14,7 +14,7 @@ Um widget de desktop para **Windows** com chat multi-IA, música, rede, lembrete
 
 </div>
 
-> **Em desenvolvimento.** O DREAVON já abre no Windows numa janela própria, com o painel geral, o chat, o clima, as notícias, os lembretes e o calendário. Sistema, rede e música ainda dependem do Linux. O código vem do [Plasdria](https://github.com/PietroAlexandria/Plasdria), um widget para KDE Plasma (Linux), e está sendo adaptado em etapas. Acompanhe o andamento no [roadmap](#roadmap).
+> **Em desenvolvimento.** O DREAVON já abre no Windows numa janela própria, com o painel geral, o chat, o clima, as notícias, os lembretes, o calendário, o sistema, os dispositivos e a rede. A música ainda depende do Linux. O código vem do [Plasdria](https://github.com/PietroAlexandria/Plasdria), um widget para KDE Plasma (Linux), e está sendo adaptado em etapas. Acompanhe o andamento no [roadmap](#roadmap).
 
 ## O que é o DREAVON
 
@@ -33,7 +33,7 @@ A identidade segue o mesmo espírito:
 
 ## O que vem da base (Plasdria)
 
-Estas são as funções da base Linux que o DREAVON pretende ter no Windows. O painel geral, o clima, as notícias, o calendário e o chat (testado com o Claude) já funcionam na janela do Windows; o resto segue o roadmap.
+Estas são as funções da base Linux que o DREAVON pretende ter no Windows. O painel geral, o clima, as notícias, o calendário, o chat (testado com o Claude), o sistema e a rede já funcionam na janela do Windows; o resto segue o roadmap.
 
 | Recurso | Na base Linux | Previsão para o Windows |
 | --- | --- | --- |
@@ -57,7 +57,7 @@ O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.m
 - [x] **2.** Casca própria em janela Qt Quick, sem Plasma, com bandeja, nome e logo do DREAVON e chave da API no Gerenciador de Credenciais ([plano](docs/passo-2-casca.md), [diário](docs/diario/02-casca-windows.md), [PR #6](https://github.com/Pedro-Andreotti/DREAVON/pull/6))
 - [x] **3.** Partes portáveis: clima, notícias, lembretes, calendário e chat, com os CLIs de IA executados sem passar pelo `cmd.exe` ([diário](docs/diario/03-partes-portaveis.md))
 - [x] **4.** Sistema: CPU, RAM, swap, disco, bateria, GPU e temperatura do SSD — **concluído parcialmente**: a temperatura da CPU segue indisponível no Windows (sem fonte nativa sem administrador) ([diário](docs/diario/04-sistema-windows.md))
-- [ ] **5.** Rede: tráfego, IP e sinal do Wi-Fi
+- [x] **5.** Rede: tráfego (só placas físicas), IP, tipo, nome e sinal do Wi-Fi, latência e modo offline ([diário](docs/diario/06-rede-windows.md))
 - [ ] **6.** Música via SMTC
 - [ ] **7.** Notificações, atalho global, bandeja do sistema e instalador
 - [ ] Identidade final: ícone do aplicativo e telas
