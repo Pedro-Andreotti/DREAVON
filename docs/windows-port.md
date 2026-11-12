@@ -15,7 +15,7 @@ Levantamento feito a partir do README e de uma busca por APIs específicas de Li
 
 | Função | Linux (hoje) | Windows (alvo) | Arquivo |
 | --- | --- | --- | --- |
-| Música (player ativo, capa, controles) | MPRIS via D-Bus (`org.mpris.MediaPlayer2`) | SMTC — `GlobalSystemMediaTransportControlsSessionManager` (WinRT) | `mediaclient.cpp` |
+| Música (player ativo, capa, controles) | MPRIS via D-Bus (`org.mpris.MediaPlayer2`) | SMTC — `GlobalSystemMediaTransportControlsSessionManager` (C++/WinRT, feito no passo 6) | `mediaclient.cpp`, `mediainfo_win.cpp` |
 | Rede (tráfego, IP, sinal Wi-Fi) | `/proc/net/dev`, NetworkManager (D-Bus) | `GetIfTable2`/`GetIfEntry2` (IP Helper), WLAN API (`WlanQueryInterface`) | `networkclient.cpp` |
 | CPU / carga / uptime | `/proc/stat`, `/proc/loadavg`, `/proc/uptime`, `/proc/cpuinfo` | PDH (Performance Counters), `GetTickCount64`, registro/WMI para o nome do processador | `dashboardclient.cpp` / `plugin.cpp` |
 | RAM e swap | `/proc/meminfo` | `GlobalMemoryStatusEx` | idem |
@@ -44,5 +44,5 @@ Levantamento feito a partir do README e de uma busca por APIs específicas de Li
 
 - Qual casca usar: janela flutuante, barra lateral ou widget na área de trabalho.
 - Temperaturas: aceitar um valor aproximado ou depender de uma ferramenta de terceiros.
-- Compilador: MSVC ou MinGW (impacta o acesso a WinRT).
+- ~~Compilador: MSVC ou MinGW (impacta o acesso a WinRT)~~: MSVC desde o passo 1; o WinRT é usado por C++/WinRT do Windows SDK (passo 6).
 - ~~Nome, ícone e identidade visual do DREAVON~~: trocados no passo 2.
