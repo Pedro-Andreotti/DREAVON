@@ -2,9 +2,7 @@
 
 Todas as mudanças relevantes do DREAVON ficam registradas aqui.
 
-O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e o projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/). Cada versão tem uma tag `vX.Y.Z` (ver [CONTRIBUTING.md](CONTRIBUTING.md)).
-
-## [Não lançado]
+O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e o projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/): recurso novo sobe o número do meio, correção sobe o último e mudança que quebra configurações salvas ou o QML sobe o primeiro. O PR do recurso já sobe a versão e a registra aqui; a tag `vX.Y.Z` sai depois do merge (ver [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ## [1.0.0] - 2026-11-12
 
@@ -58,5 +56,4 @@ Primeira versão do DREAVON: **uso pessoal no Windows**, sem instalador e sem as
 - **Sem instalador e sem assinatura:** o app abre pelo `qml.exe` do Qt, com os scripts de `tools/` ([diário 10](docs/diario/10-uso-local-windows.md)).
 - **Linux:** não testado nesta versão. O código do Linux ficou atrás de `#ifdef`, mas não foi compilado nem executado.
 
-[Não lançado]: https://github.com/Pedro-Andreotti/DREAVON/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/Pedro-Andreotti/DREAVON/releases/tag/v1.0.0

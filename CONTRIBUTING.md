@@ -33,17 +33,21 @@ git branch -d feat/nome-da-etapa
 Mensagens curtas, em português, no imperativo ou descrevendo a mudança (por exemplo, "Isola o D-Bus atrás de Q_OS_LINUX"). Uma mudança lógica por commit.
 
 ## Versões
-- **SemVer** (`MAJOR.MINOR.PATCH`): `PATCH` para correções, `MINOR` para recursos novos que não quebram nada, `MAJOR` para mudanças incompatíveis (por exemplo, configurações que deixam de valer).
-- **Número único:** `project(DREAVON VERSION X.Y.Z)` no `CMakeLists.txt`. O `package/metadata.json` precisa ter o mesmo número (`KPlugin.Version`); o CMake confere e para o build se divergirem. O app mostra a versão em Configurações > Sobre.
-- **CHANGELOG:** toda mudança relevante entra em `## [Não lançado]` no [CHANGELOG.md](CHANGELOG.md) (formato Keep a Changelog), no mesmo PR da mudança.
-- **Lançar uma versão:**
-  1. criar a branch `release/X.Y.Z`;
-  2. trocar o número nos dois arquivos;
-  3. mover `[Não lançado]` para `## [X.Y.Z] - AAAA-MM-DD`;
-  4. escrever as notas em `docs/releases/vX.Y.Z.md`;
-  5. fazer a auditoria de privacidade (sem chaves, caminhos pessoais nem dados reais; ver diário 11).
+O DREAVON segue o Versionamento Semântico (`MAJOR.MINOR.PATCH`):
 
-  Depois do merge, o autor cria a tag `vX.Y.Z` na `main` e o GitHub Release com as notas.
+| Mudança | Qual número sobe | Exemplo a partir de 1.0.0 |
+| --- | --- | --- |
+| Recurso novo | o do meio (MINOR), e o último volta a 0 | 1.1.0, depois 1.2.0 |
+| Correção | o último (PATCH) | 1.0.1 |
+| Mudança que quebra configurações salvas ou o QML | o primeiro (MAJOR), e os outros voltam a 0 | 2.0.0 |
+
+- **Uma versão por release, não por PR.** PRs só de documentação, limpeza ou build (`docs/`, `chore/`) não sobem a versão.
+- **O PR do recurso (ou da correção) já sobe a versão:**
+  - troca o número em `project(DREAVON VERSION X.Y.Z)` no `CMakeLists.txt` e em `KPlugin.Version` no `package/metadata.json`; o CMake confere os dois e para o build se divergirem;
+  - registra a mudança no [CHANGELOG.md](CHANGELOG.md), numa seção `## [X.Y.Z] - AAAA-MM-DD` (formato Keep a Changelog).
+- **Mais de um PR para a mesma versão** (por exemplo, um recurso dividido em partes): só o primeiro sobe o número; os seguintes acrescentam itens à mesma seção do CHANGELOG.
+- **Depois do merge na `main`:** o autor cria a tag `vX.Y.Z` e o GitHub Release, com as notas em `docs/releases/vX.Y.Z.md`. Antes, faça a auditoria de privacidade (sem chaves, caminhos pessoais nem dados reais; ver o diário 11).
+- O app mostra a versão em Configurações > Sobre.
 
 ## Documentação
 Cada implementação concluída é registrada nas notas do projeto (Obsidian: "Log de implementações"), com o link do Pull Request.
