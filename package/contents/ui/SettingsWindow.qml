@@ -16,6 +16,8 @@ Window {
     property var legacyKeyStore: null
     // Atalho global (GlobalHotkey), para a página Geral mostrar a situação e testar combinações.
     property var hotkey: null
+    // "Iniciar com o Windows" (Autostart), para a página Geral.
+    property var autostart: null
     signal applied()
     title: "Configurações"
     width: 720; height: 640
@@ -44,6 +46,7 @@ Window {
 
     function load(page) {
         if ("hotkey" in page) page.hotkey = hotkey
+        if ("autostart" in page) page.autostart = autostart
         for (const key of keys) if (("cfg_" + key) in page) page["cfg_" + key] = cfg[key]
         if ("credentials" in page) {
             page.credentials = credentials; page.credentialTarget = credentialTarget
