@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Shapes
 
 // Ícone do clima. Quando animado, as animações (sol girando, nuvem, gotas e raio) são calculadas a
-// partir de um único relógio ("phase", em ms) que avança a 15 ou 30 quadros por segundo, e só enquanto a
+// partir de um único relógio ("phase", em ms) que avança a 15 ou 20 quadros por segundo, e só enquanto a
 // janela está em foco. Antes eram animações contínuas do Qt Quick, que faziam a janela inteira ser
 // redesenhada a cada quadro da tela (120 por segundo aqui) mesmo minimizada: ~35% de um núcleo.
 // As curvas e durações são as mesmas de antes (ver docs/diario/09-uso-de-cpu-windows.md).
@@ -21,9 +21,9 @@ Item {
     property real phase: 0          // tempo de animação acumulado (ms); 0 = nunca animou
     property real lastTick: 0
     // Sol e nuvem se movem menos de 1 px por quadro: 15 quadros por segundo bastam. Chuva, neve e raio
-    // têm movimentos mais rápidos: 30.
+    // têm movimentos mais rápidos: 20 (a queda de uma gota, 9 px em 0,7 s, fica com ~14 passos).
     Timer {
-        interval: root.rain || root.snow ? 33 : 66; repeat: true; running: root.live
+        interval: root.rain || root.snow ? 50 : 66; repeat: true; running: root.live
         onRunningChanged: root.lastTick = Date.now()
         onTriggered: {
             const now = Date.now()
