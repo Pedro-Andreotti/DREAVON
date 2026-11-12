@@ -6,8 +6,12 @@
 #include <QUrl>
 
 class QNetworkAccessManager;
+#ifdef Q_OS_WIN
+namespace MediaInfoWin { class Session; }
+#endif
 
-// Player de mídia ativo via MPRIS (Spotify, navegadores, VLC, Elisa…).
+// Player de mídia ativo via MPRIS no Linux (Spotify, navegadores, VLC, Elisa…) e pela sessão de mídia
+// do Windows (SMTC) no Windows.
 // Lembra a última música (com a capa guardada em cache) para mostrar e retomar
 // mesmo com o player fechado ou sem internet.
 class MediaClient : public QObject {
@@ -84,6 +88,12 @@ private:
     QString statePath() const;
     QString artDir() const;
     QString spotifyCommand() const;
+#ifdef Q_OS_WIN
+    void applyWin();
+    void cacheArtData(const QString &key, const QByteArray &data);
+    void openSpotifyUri();
+    MediaInfoWin::Session *m_win = nullptr;
+#endif
 
     QTimer m_timer, m_tick;
     QNetworkAccessManager *m_net = nullptr;

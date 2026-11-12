@@ -37,6 +37,13 @@ if(WIN32)
     # Rede (passo 5): iphlpapi (contadores, melhor rota, endereços), wlanapi (SSID e sinal), ws2_32.
     target_sources(dreavonplugin PRIVATE native/networkinfo_win.cpp native/networkinfo_win.h)
     target_link_libraries(dreavonplugin PRIVATE iphlpapi wlanapi ws2_32)
+    # Música (passo 6): sessão de mídia do Windows (SMTC) por C++/WinRT, com os cabeçalhos do próprio
+    # Windows SDK (pasta cppwinrt, já no INCLUDE do MSVC); windowsapp liga as APIs WinRT.
+    target_sources(dreavonplugin PRIVATE native/mediainfo_win.cpp native/mediainfo_win.h)
+    target_link_libraries(dreavonplugin PRIVATE windowsapp)
+    # Em C++17, o C++/WinRT usa <experimental/coroutine>, que o MSVC atual recusa; só este arquivo
+    # compila em C++20 (o resto do projeto segue em C++17).
+    set_source_files_properties(native/mediainfo_win.cpp PROPERTIES COMPILE_OPTIONS "/std:c++20")
 endif()
 
 if(MSVC)

@@ -14,7 +14,7 @@ Um widget de desktop para **Windows** com chat multi-IA, música, rede, lembrete
 
 </div>
 
-> **Em desenvolvimento.** O DREAVON já abre no Windows numa janela própria, com o painel geral, o chat, o clima, as notícias, os lembretes, o calendário, o sistema, os dispositivos e a rede. A música ainda depende do Linux. O código vem do [Plasdria](https://github.com/PietroAlexandria/Plasdria), um widget para KDE Plasma (Linux), e está sendo adaptado em etapas. Acompanhe o andamento no [roadmap](#roadmap).
+> **Em desenvolvimento.** O DREAVON já abre no Windows numa janela própria, com o painel geral, o chat, o clima, as notícias, os lembretes, o calendário, o sistema, os dispositivos, a rede e a música. O código vem do [Plasdria](https://github.com/PietroAlexandria/Plasdria), um widget para KDE Plasma (Linux), e está sendo adaptado em etapas. Acompanhe o andamento no [roadmap](#roadmap).
 
 ## O que é o DREAVON
 
@@ -33,7 +33,7 @@ A identidade segue o mesmo espírito:
 
 ## O que vem da base (Plasdria)
 
-Estas são as funções da base Linux que o DREAVON pretende ter no Windows. O painel geral, o clima, as notícias, o calendário, o chat (testado com o Claude), o sistema e a rede já funcionam na janela do Windows; o resto segue o roadmap.
+Estas são as funções da base Linux que o DREAVON pretende ter no Windows. O painel geral, o clima, as notícias, o calendário, o chat (testado com o Claude), o sistema, a rede e a música já funcionam na janela do Windows; o resto segue o roadmap.
 
 | Recurso | Na base Linux | Previsão para o Windows |
 | --- | --- | --- |
@@ -59,7 +59,7 @@ O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.m
 - [x] **4.** Sistema: CPU, RAM, swap, disco, bateria, GPU e temperatura do SSD — **concluído parcialmente**: a temperatura da CPU segue indisponível no Windows (sem fonte nativa sem administrador) ([diário](docs/diario/04-sistema-windows.md))
 - [x] **4b.** Dispositivos: USB e Bluetooth pela lista do Windows e bateria do mouse Logitech pelo receptor (HID++, só leitura) — a bateria do fone Bluetooth segue em aberto ([diário](docs/diario/05-dispositivos-windows.md))
 - [x] **5.** Rede: tráfego (só placas físicas), IP, tipo, nome e sinal do Wi-Fi, latência e modo offline ([diário](docs/diario/06-rede-windows.md))
-- [ ] **6.** Música via SMTC
+- [x] **6.** Música via SMTC (C++/WinRT): Spotify, navegadores e outros players, com capa, posição e controles ([diário](docs/diario/07-musica-windows.md))
 - [ ] **7.** Notificações, atalho global, bandeja do sistema e instalador
 - [ ] Identidade final: ícone do aplicativo e telas
 
