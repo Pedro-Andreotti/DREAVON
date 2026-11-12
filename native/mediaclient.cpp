@@ -413,6 +413,11 @@ void MediaClient::playPause() {
     if (!live()) {
         // Player fechado: abre e retoma a última música do ponto em que parou.
         if (m_pendingResume) return;
+#ifdef Q_OS_WIN
+        // No Windows só o Spotify é aberto (protocolo spotify:). Lembrada de um navegador ou outro app:
+        // não há como reabrir na mesma música, então não entra no estado "abrindo" (ficaria 30 s preso).
+        if (!m_entry.isEmpty() && m_entry != QLatin1String("spotify")) return;
+#endif
         m_pendingResume = true; m_resumeOpened = false;
         m_resumeSince = QDateTime::currentMSecsSinceEpoch();
         if (m_entry.isEmpty()) m_entry = "spotify";
