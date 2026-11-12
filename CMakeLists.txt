@@ -32,8 +32,8 @@ if(WIN32)
     # Gerenciador de Credenciais (CredWrite, CredRead, CredDelete), contadores PDH e
     # GetPerformanceInfo (passo 4: sistema no Windows).
     target_sources(dreavonplugin PRIVATE native/systeminfo_win.cpp native/systeminfo_win.h)
-    # cfgmgr32: lista de aparelhos conectados (cartão Dispositivos).
-    target_link_libraries(dreavonplugin PRIVATE advapi32 pdh psapi cfgmgr32)
+    # cfgmgr32: lista de aparelhos conectados (cartão Dispositivos); hid e setupapi: bateria Logitech (HID++).
+    target_link_libraries(dreavonplugin PRIVATE advapi32 pdh psapi cfgmgr32 hid setupapi)
 endif()
 
 if(MSVC)

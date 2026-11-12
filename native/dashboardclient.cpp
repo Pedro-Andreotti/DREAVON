@@ -2,6 +2,7 @@
 
 #include <QDateTime>
 #include <QElapsedTimer>
+#include <QtConcurrent>
 #include <QSysInfo>
 #include <QThread>
 #include <memory>
@@ -33,6 +34,10 @@ Q_DECLARE_METATYPE(DBusObjects)
 
 #ifdef Q_OS_WIN
 #include "systeminfo_win.h"
+#include <QLoggingCategory>
+// Diagnóstico da leitura de bateria por HID++ (desligado por padrão; ligue com
+// QT_LOGGING_RULES="dreavon.devices.info=true"). Só contagem e duração, sem valores nem ids.
+Q_LOGGING_CATEGORY(lcDevices, "dreavon.devices", QtWarningMsg)
 #endif
 
 namespace {
@@ -758,12 +763,47 @@ void DashboardClient::requestBatteries() {
     // Windows: aparelhos externos conectados (USB e Bluetooth) por CfgMgr32, os mesmos que Configurações
     // lista. Vão todos em m_bluetoothDevices (que o peripheralDevices() já junta). Leitura a cada 15 s,
     // não a cada ciclo de 5 s; sem bateria informada, percent = -1 e o cartão os resume em uma linha.
-    static QElapsedTimer sinceLast;
-    if (sinceLast.isValid() && sinceLast.elapsed() < 15000) return;
-    sinceLast.start();
+    // Bateria Logitech (HID++): a cada 60 s, em segundo plano, porque espera respostas do receptor.
+    if (!m_logitechWatcher) {
+        m_logitechWatcher = new QFutureWatcher<QList<QVariantMap>>(this);
+        connect(m_logitechWatcher, &QFutureWatcher<QList<QVariantMap>>::finished, this, [this] {
+            // Leitura que falhou num ciclo (ex.: receptor ocupado com o G HUB) mantém o último valor bom
+            // por até 10 min, como o próprio G HUB faz; receptor desconectado já sai da lista sozinho.
+            const qint64 now = QDateTime::currentMSecsSinceEpoch();
+            qCInfo(lcDevices) << "HID++: aparelhos lidos neste ciclo =" << m_logitechWatcher->result().size()
+                              << "| duração (ms) =" << m_logitechClock.elapsed();
+            QHash<QString, QVariantMap> batteries;
+            for (auto b : m_logitechWatcher->result()) { b["at"] = now; batteries.insert(b.value("container").toString(), b); }
+            for (auto it = m_logitechBatteries.cbegin(); it != m_logitechBatteries.cend(); ++it)
+                if (!batteries.contains(it.key()) && now - it->value("at").toLongLong() < 10 * 60 * 1000) batteries.insert(it.key(), *it);
+            m_logitechBatteries = batteries;
+            m_devicesClock.invalidate();   // reaplica na lista na próxima chamada
+            requestBatteries();
+        });
+    }
+    if (!m_logitechWatcher->isRunning() && (!m_logitechClock.isValid() || m_logitechClock.elapsed() >= 60000)) {
+        m_logitechClock.start();
+        m_logitechWatcher->setFuture(QtConcurrent::run([] {
+            QList<QVariantMap> list;
+            for (const auto &b : SystemInfoWin::logitechBatteries())
+                list.append({{"container", b.container}, {"percent", b.percent}, {"charging", b.charging}, {"kind", b.kind}});
+            return list;
+        }));
+    }
+    if (m_devicesClock.isValid() && m_devicesClock.elapsed() < 15000) return;
+    m_devicesClock.start();
     QVariantList devices;
-    for (const auto &d : SystemInfoWin::peripherals())
-        devices.append(QVariantMap{{"name", d.name}, {"kind", d.kind}, {"percent", d.percent}, {"category", d.category}, {"bluetooth", d.bluetooth}});
+    for (const auto &d : SystemInfoWin::peripherals()) {
+        QVariantMap item{{"name", d.name}, {"kind", d.kind}, {"percent", d.percent}, {"category", d.category}, {"bluetooth", d.bluetooth}};
+        // Receptor Logitech com bateria lida pelo HID++: o aparelho por trás dele (ex.: o mouse).
+        const auto logitech = m_logitechBatteries.value(d.container);
+        if (!logitech.isEmpty()) {
+            item["percent"] = logitech.value("percent");
+            item["charging"] = logitech.value("charging");
+            if (!logitech.value("kind").toString().isEmpty()) item["kind"] = logitech.value("kind");
+        }
+        devices.append(item);
+    }
     m_upowerDevices.clear();
     if (devices != m_bluetoothDevices) { m_bluetoothDevices = devices; emit changed(); }
 #else

@@ -10,6 +10,10 @@
 #include <cfgmgr32.h>
 #include <devpkey.h>
 #include <devquery.h>
+#include <setupapi.h>
+#include <hidsdi.h>
+#include <hidpi.h>
+#include <cstring>
 #include <QHash>
 #include <QSet>
 #include <string>
@@ -264,6 +268,7 @@ QList<Peripheral> peripherals() {
             return false;
         };
         Peripheral device;
+        device.container = it.key();
         device.name = name.trimmed();
         device.category = categories.join(',');
         device.percent = it->battery >= 0 ? it->battery : containerBattery;
@@ -274,6 +279,167 @@ QList<Peripheral> peripherals() {
         else if (has("Input.Keyboard") && !has("Input.Mouse")) device.kind = QStringLiteral("Teclado");
         result.append(device);
     }
+    return result;
+}
+
+namespace {
+// Canal HID com tempo limite (E/S sobreposta): relatórios de 20 bytes do HID++ "longo".
+// O receptor aceita vários leitores ao mesmo tempo (o G HUB continua funcionando).
+class HidLink {
+public:
+    explicit HidLink(const std::wstring &path)
+        : m_handle(CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+                               OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr)),
+          m_event(CreateEventW(nullptr, TRUE, FALSE, nullptr)) {}
+    ~HidLink() {
+        if (m_handle != INVALID_HANDLE_VALUE) { CancelIo(m_handle); CloseHandle(m_handle); }
+        if (m_event) CloseHandle(m_event);
+    }
+    HidLink(const HidLink &) = delete;
+    HidLink &operator=(const HidLink &) = delete;
+    bool ok() const { return m_handle != INVALID_HANDLE_VALUE && m_event; }
+    bool write(BYTE *data, DWORD size) { return io(true, data, size, 500) == size; }
+    DWORD read(BYTE *data, DWORD size, DWORD timeoutMs) { return io(false, data, size, timeoutMs); }
+private:
+    DWORD io(bool writing, BYTE *data, DWORD size, DWORD timeoutMs) {
+        OVERLAPPED ov{};
+        ov.hEvent = m_event;
+        ResetEvent(m_event);
+        const BOOL started = writing ? WriteFile(m_handle, data, size, nullptr, &ov) : ReadFile(m_handle, data, size, nullptr, &ov);
+        if (!started && GetLastError() != ERROR_IO_PENDING) return 0;
+        DWORD done = 0;
+        if (WaitForSingleObject(m_event, timeoutMs) != WAIT_OBJECT_0) {
+            CancelIoEx(m_handle, &ov);
+            GetOverlappedResult(m_handle, &ov, &done, TRUE);   // espera o cancelamento antes de sair (ov e data são locais)
+            return 0;
+        }
+        return GetOverlappedResult(m_handle, &ov, &done, FALSE) ? done : 0;
+    }
+    HANDLE m_handle;
+    HANDLE m_event;
+};
+
+// Uma consulta HID++ 2.0 (relatório longo 0x11): [0x11, aparelho, índice do recurso, (função << 4) | software, args...].
+// Espera a resposta do mesmo aparelho/índice/função; ignora o tráfego de outros programas (ex.: G HUB).
+// Devolve 1 com resposta, 0 com erro HID++ (recurso/aparelho não atende) e -1 sem resposta.
+int hidppQueryOnce(HidLink &link, BYTE device, BYTE index, BYTE function, const BYTE *args, int argCount, BYTE *reply,
+                   DWORD timeoutMs = 1000) {
+    constexpr BYTE softwareId = 0x0A;
+    BYTE request[20] = {0x11, device, index, BYTE((function << 4) | softwareId)};
+    for (int i = 0; i < argCount && i < 16; ++i) request[4 + i] = args[i];
+    if (!link.write(request, sizeof(request))) return -1;
+    const ULONGLONG deadline = GetTickCount64() + timeoutMs;
+    for (ULONGLONG now = GetTickCount64(); now < deadline; now = GetTickCount64()) {
+        BYTE in[20] = {};
+        if (link.read(in, sizeof(in), DWORD(deadline - now)) < 5) return -1;
+        if (in[0] != 0x11 || in[1] != device) continue;
+        if (in[2] == 0xFF && in[3] == index && in[4] == request[3]) return 0;   // erro HID++ 2.0
+        if (in[2] == index && in[3] == request[3]) { std::memcpy(reply, in, sizeof(in)); return 1; }
+    }
+    return -1;
+}
+
+// Com uma nova tentativa: o receptor pode responder "ocupado" se o G HUB consultar ao mesmo tempo.
+int hidppQuery(HidLink &link, BYTE device, BYTE index, BYTE function, const BYTE *args, int argCount, BYTE *reply) {
+    const int first = hidppQueryOnce(link, device, index, function, args, argCount, reply);
+    if (first == 1) return 1;
+    Sleep(150);
+    const int second = hidppQueryOnce(link, device, index, function, args, argCount, reply);
+    return second == 1 ? 1 : qMax(first, second);
+}
+
+// Índice do recurso no aparelho (Root.GetFeature): >0 se suporta, 0 se não, -1 sem resposta.
+int featureIndex(HidLink &link, BYTE device, quint16 feature) {
+    const BYTE args[2] = {BYTE(feature >> 8), BYTE(feature & 0xFF)};
+    BYTE reply[20];
+    const int r = hidppQuery(link, device, 0x00, 0, args, 2, reply);
+    return r == 1 ? reply[4] : r;
+}
+
+// Interface "longa" do HID++ de um receptor Logitech: fabricante 0x046D, página 0xFF00, uso 0x0002.
+bool isLogitechLongInterface(const std::wstring &path) {
+    HANDLE h = CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+    if (h == INVALID_HANDLE_VALUE) return false;
+    bool match = false;
+    HIDD_ATTRIBUTES attributes{};
+    attributes.Size = sizeof(attributes);
+    PHIDP_PREPARSED_DATA preparsed = nullptr;
+    if (HidD_GetAttributes(h, &attributes) && attributes.VendorID == 0x046D && HidD_GetPreparsedData(h, &preparsed)) {
+        HIDP_CAPS caps{};
+        match = HidP_GetCaps(preparsed, &caps) == HIDP_STATUS_SUCCESS && caps.UsagePage == 0xFF00 && caps.Usage == 0x0002;
+        HidD_FreePreparsedData(preparsed);
+    }
+    CloseHandle(h);
+    return match;
+}
+
+// Tipo informado pelo recurso DeviceNameType (0x0005), na numeração do HID++ 2.0.
+QString kindForHidppType(BYTE type) {
+    switch (type) {
+    case 0: case 2: return QStringLiteral("Teclado");          // teclado, teclado numérico
+    case 3: case 4: case 5: return QStringLiteral("Mouse");    // mouse, trackpad, trackball
+    case 8: return QStringLiteral("Fone");                     // headset
+    default: return {};
+    }
+}
+}
+
+QList<LogitechBattery> logitechBatteries() {
+    QList<LogitechBattery> result;
+    GUID hidGuid;
+    HidD_GetHidGuid(&hidGuid);
+    HDEVINFO set = SetupDiGetClassDevsW(&hidGuid, nullptr, nullptr, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+    if (set == INVALID_HANDLE_VALUE) return result;
+    SP_DEVICE_INTERFACE_DATA data{};
+    data.cbSize = sizeof(data);
+    for (DWORD i = 0; SetupDiEnumDeviceInterfaces(set, nullptr, &hidGuid, i, &data); ++i) {
+        DWORD required = 0;
+        SetupDiGetDeviceInterfaceDetailW(set, &data, nullptr, 0, &required, nullptr);
+        if (required < sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W)) continue;
+        std::vector<BYTE> buffer(required);
+        auto *detail = reinterpret_cast<SP_DEVICE_INTERFACE_DETAIL_DATA_W *>(buffer.data());
+        detail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W);
+        SP_DEVINFO_DATA devInfo{};
+        devInfo.cbSize = sizeof(devInfo);
+        if (!SetupDiGetDeviceInterfaceDetailW(set, &data, detail, required, nullptr, &devInfo)) continue;
+        const std::wstring path = detail->DevicePath;
+        if (!isLogitechLongInterface(path)) continue;
+        // Contêiner do receptor: o mesmo aparelho que peripherals() já lista.
+        GUID container;
+        DEVPROPTYPE type = 0;
+        if (!SetupDiGetDevicePropertyW(set, &devInfo, &DEVPKEY_Device_ContainerId, &type, reinterpret_cast<PBYTE>(&container),
+                                       sizeof(container), nullptr, 0) || type != DEVPROP_TYPE_GUID) continue;
+        wchar_t key[40];
+        StringFromGUID2(container, key, 40);
+
+        HidLink link(path);
+        if (!link.ok()) continue;
+        for (BYTE device = 1; device <= 6; ++device) {   // índices de aparelho num receptor
+            BYTE reply[20];
+            LogitechBattery battery;
+            battery.container = QString::fromWCharArray(key);
+            // Sonda rápida do índice (500 ms, sem nova tentativa): índice vazio não responde.
+            const BYTE probeArgs[2] = {0x10, 0x04};
+            const int probe = hidppQueryOnce(link, device, 0x00, 0, probeArgs, 2, reply, 500);
+            if (probe < 0) continue;
+            const int unified = probe == 1 ? reply[4] : 0;   // índice do 0x1004 (0 = não suporta ou erro HID++)
+            if (unified > 0 && hidppQuery(link, device, BYTE(unified), 1, nullptr, 0, reply) == 1) {
+                battery.percent = reply[4];                         // UnifiedBattery.GetStatus: carga em %
+                battery.charging = reply[6] == 1 || reply[6] == 2;  // 1 carregando, 2 carregando devagar
+            } else {
+                const int status = featureIndex(link, device, 0x1000);
+                if (status <= 0 || hidppQuery(link, device, BYTE(status), 0, nullptr, 0, reply) != 1) continue;
+                battery.percent = reply[4];                         // BatteryStatus.GetBatteryLevelStatus
+                battery.charging = reply[6] >= 1 && reply[6] <= 2;
+            }
+            if (battery.percent < 0 || battery.percent > 100) continue;
+            const int nameType = featureIndex(link, device, 0x0005);
+            if (nameType > 0 && hidppQuery(link, device, BYTE(nameType), 2, nullptr, 0, reply) == 1)
+                battery.kind = kindForHidppType(reply[4]);          // DeviceNameType.GetDeviceType
+            result.append(battery);
+        }
+    }
+    SetupDiDestroyDeviceInfoList(set);
     return result;
 }
 
