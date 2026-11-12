@@ -13,9 +13,8 @@
 #include <QStandardPaths>
 #include <memory>
 
-// Os players são controlados por MPRIS, via D-Bus, que só existe no Linux.
-// Qt define QT_DBUS_LIB quando o módulo DBus é ligado. Sem ele (Windows), o cliente só
-// mostra a última música salva; o controle de verdade virá do SMTC (TODO(Windows)).
+// No Linux, os players são controlados por MPRIS, via D-Bus. Qt define QT_DBUS_LIB quando o módulo
+// DBus é ligado. No Windows, a fonte é a sessão de mídia do sistema (SMTC, em mediainfo_win.cpp).
 #ifdef QT_DBUS_LIB
 #include <QDBusArgument>
 #include <QDBusConnection>
@@ -25,6 +24,12 @@
 #include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
 #include <QDBusVariant>
+#endif
+
+#ifdef Q_OS_WIN
+#include "mediainfo_win.h"
+#include <QDesktopServices>
+#include <QRegularExpression>
 #endif
 
 namespace {
@@ -72,6 +77,13 @@ QString objectPath(const QVariant &value) {
     return inner.toString();
 }
 
+// Mantém só as MaxCachedArt capas mais recentes na pasta de cache.
+void pruneArt(const QString &dirPath) {
+    QDir dir(dirPath);
+    const auto files = dir.entryInfoList(QDir::Files, QDir::Time);   // mais novas primeiro
+    for (int i = MaxCachedArt; i < files.size(); ++i) QFile::remove(files[i].filePath());
+}
+
 // "org.mpris.MediaPlayer2.firefox.instance_1_23" -> "firefox"
 QString entryOf(const QString &service) { return service.mid(Prefix.size()).section('.', 0, 0).toLower(); }
 
@@ -90,14 +102,22 @@ QString spotifyUri(const QString &trackId, const QString &url) {
 
 MediaClient::MediaClient(QObject *parent) : QObject(parent), m_net(new QNetworkAccessManager(this)) {
     restore();
+#ifdef Q_OS_WIN
+    // Windows: por eventos do SMTC, sem consulta periódica.
+    m_win = new MediaInfoWin::Session(this);
+    connect(m_win, &MediaInfoWin::Session::changed, this, &MediaClient::applyWin);
+#else
     m_timer.setInterval(1500);
     connect(&m_timer, &QTimer::timeout, this, &MediaClient::poll);
     m_timer.start();
+#endif
     // A posição é extrapolada localmente entre as consultas, para a barra andar suave.
     m_tick.setInterval(500);
     connect(&m_tick, &QTimer::timeout, this, [this] { if (playing()) emit positionChanged(); });
     m_tick.start();
+#ifndef Q_OS_WIN
     poll();
+#endif
 }
 
 QUrl MediaClient::artUrl() const {
@@ -105,7 +125,13 @@ QUrl MediaClient::artUrl() const {
     return live() ? m_artUrl : QUrl();
 }
 
-bool MediaClient::spotifyInstalled() const { return !QStandardPaths::findExecutable(spotifyCommand()).isEmpty(); }
+bool MediaClient::spotifyInstalled() const {
+#ifdef Q_OS_WIN
+    return MediaInfoWin::spotifyProtocolRegistered();
+#else
+    return !QStandardPaths::findExecutable(spotifyCommand()).isEmpty();
+#endif
+}
 
 QString MediaClient::spotifyCommand() const {
     const QString custom = qEnvironmentVariable("DREAVON_SPOTIFY_COMMAND");
@@ -239,11 +265,7 @@ void MediaClient::cacheArt() {
     const QString file = artDir() + '/' + key;
     if (QFileInfo::exists(file)) { m_artFile = file; return; }
 
-    auto prune = [this] {
-        QDir dir(artDir());
-        const auto files = dir.entryInfoList(QDir::Files, QDir::Time);   // mais novas primeiro
-        for (int i = MaxCachedArt; i < files.size(); ++i) QFile::remove(files[i].filePath());
-    };
+    auto prune = [this] { pruneArt(artDir()); };
     if (m_artUrl.isLocalFile()) {
         // Navegadores apagam a capa temporária quando a aba fecha.
         if (QFile::copy(m_artUrl.toLocalFile(), file)) { m_artFile = file; prune(); }
@@ -321,12 +343,24 @@ void MediaClient::forget() {
 }
 
 void MediaClient::launch(const QString &entry) {
+#ifdef Q_OS_WIN
+    // Só o Spotify é aberto, pelo protocolo spotify: (nenhum comando nem texto do usuário). Os demais
+    // apps (navegadores etc.) não têm um jeito seguro e genérico de abrir na mesma música.
+    if (entry == QLatin1String("spotify") || entry.isEmpty()) openSpotifyUri();
+    return;
+#endif
     const QString command = entry == QLatin1String("spotify") || entry.isEmpty() ? spotifyCommand() : entry;
     if (QStandardPaths::findExecutable(command).isEmpty()) return;
     QProcess::startDetached(command, {});
 }
 
 void MediaClient::resumeOn(const QString &service) {
+#ifdef Q_OS_WIN
+    // O Spotify abre com a última música carregada; o SMTC não tem "abrir URI", então só dá play.
+    Q_UNUSED(service);
+    if (m_win) m_win->play();
+    return;
+#endif
 #ifdef QT_DBUS_LIB
     QString method = "Play";
     QVariantList args;
@@ -346,6 +380,12 @@ void MediaClient::call(const QString &method, const QVariantList &args) {
     auto msg = QDBusMessage::createMethodCall(m_service, PlayerPath, PlayerInterface, method);
     msg.setArguments(args);
     QDBusConnection::sessionBus().asyncCall(msg, 1500);
+#elif defined(Q_OS_WIN)
+    Q_UNUSED(args);
+    if (method == QLatin1String("PlayPause")) m_win->playPause();
+    else if (method == QLatin1String("Next")) m_win->next();
+    else if (method == QLatin1String("Previous")) m_win->previous();
+    return;   // a resposta chega por evento
 #else
     Q_UNUSED(method); Q_UNUSED(args);
 #endif
@@ -358,6 +398,11 @@ void MediaClient::setPlayerProperty(const QString &name, const QVariant &value) 
     auto msg = QDBusMessage::createMethodCall(m_service, PlayerPath, PropsInterface, "Set");
     msg << PlayerInterface << name << QVariant::fromValue(QDBusVariant(value));
     QDBusConnection::sessionBus().asyncCall(msg, 1500);
+#elif defined(Q_OS_WIN)
+    // O SMTC não controla o volume do player (fica indisponível: volume = -1).
+    if (name == QLatin1String("Shuffle")) m_win->setShuffle(value.toBool());
+    else if (name == QLatin1String("LoopStatus")) m_win->setLoop(value.toString());
+    return;
 #else
     Q_UNUSED(name); Q_UNUSED(value);
 #endif
@@ -372,6 +417,10 @@ void MediaClient::playPause() {
         m_resumeSince = QDateTime::currentMSecsSinceEpoch();
         if (m_entry.isEmpty()) m_entry = "spotify";
         launch(m_entry);
+#ifdef Q_OS_WIN
+        // Sem consulta periódica no Windows: desiste da retomada depois do mesmo tempo limite.
+        QTimer::singleShot(ResumeTimeoutMs, this, [this] { if (m_pendingResume) { m_pendingResume = false; emit changed(); } });
+#endif
         emit changed();
         return;
     }
@@ -397,10 +446,20 @@ void MediaClient::seek(double seconds) {
     if (!canSeek()) return;
     const double delta = seconds - position();
     m_position = seconds; m_positionAt = QDateTime::currentMSecsSinceEpoch(); emit positionChanged();
+#ifdef Q_OS_WIN
+    Q_UNUSED(delta);
+    m_win->seek(seconds);   // no SMTC a posição é absoluta
+#else
     call("Seek", {QVariant::fromValue<qlonglong>(qlonglong(delta * 1e6))});
+#endif
 }
 void MediaClient::raise() {
     if (m_service.isEmpty()) { launch(m_entry); return; }
+#ifdef Q_OS_WIN
+    // O SMTC não traz o app para a frente. O Spotify vem pelo protocolo; outros apps, ainda não.
+    if (isSpotify()) openSpotifyUri();
+    return;
+#endif
 #ifdef QT_DBUS_LIB
     QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(m_service, PlayerPath, "org.mpris.MediaPlayer2", "Raise"), 1500);
 #endif
@@ -413,6 +472,10 @@ void MediaClient::cycleLoop() {
 }
 void MediaClient::setVolume(double value) { m_volume = qBound(0.0, value, 1.0); emit changed(); setPlayerProperty("Volume", m_volume); }
 void MediaClient::openSpotify() {
+#ifdef Q_OS_WIN
+    openSpotifyUri();
+    return;
+#endif
 #ifdef QT_DBUS_LIB
     for (const QString &s : QDBusConnection::sessionBus().interface()->registeredServiceNames().value().filter(Prefix + "spotify")) {
         QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(s, PlayerPath, "org.mpris.MediaPlayer2", "Raise"), 1500);
@@ -421,3 +484,80 @@ void MediaClient::openSpotify() {
 #endif
     launch("spotify");
 }
+
+#ifdef Q_OS_WIN
+// Abre (ou traz para a frente) o Spotify pelo protocolo spotify:, via ShellExecute (sem cmd.exe).
+// Só endereços fixos: "spotify:" ou a última faixa lembrada, conferida caractere a caractere.
+void MediaClient::openSpotifyUri() {
+    static const QRegularExpression Track(QStringLiteral("^spotify:(track|episode):[A-Za-z0-9]{22}$"));
+    const QString uri = Track.match(m_uri).hasMatch() ? m_uri : QStringLiteral("spotify:");
+    QDesktopServices::openUrl(QUrl(uri));
+}
+
+// Mesmo papel do apply() do Linux, com os dados da sessão de mídia do Windows.
+void MediaClient::applyWin() {
+    const MediaInfoWin::Snapshot s = m_win->snapshot();
+    if (!s.live) { playerGone(); return; }
+    QString name, entry;
+    MediaInfoWin::appLabel(s.appId, &name, &entry);
+
+    // Retomando a última música: o player acabou de abrir.
+    if (m_pendingResume && entry == m_entry) {
+        if (!m_resumeOpened) {
+            m_resumeOpened = true;
+            // O Spotify precisa de um instante depois de aparecer no SMTC.
+            QTimer::singleShot(1500, this, [this] { resumeOn(m_service); });
+        } else if (s.status == QLatin1String("Playing")) {
+            m_pendingResume = false;
+            const bool sameTrack = !s.title.isEmpty() && s.title == m_title && s.artist == m_artist;
+            if (sameTrack && s.canSeek && m_position > 3 && (m_length <= 0 || m_position < m_length - 3)) m_win->seek(m_position);
+        }
+    }
+
+    m_service = s.appId;
+    if (!s.status.isEmpty()) m_status = s.status;
+    m_canNext = s.canNext;
+    m_canPrevious = s.canPrevious;
+    m_hasShuffle = s.hasShuffle;
+    m_shuffle = s.shuffle;
+    m_loop = s.loop;
+    m_volume = -1;
+
+    // Player aberto sem música carregada (ex.: Spotify recém-aberto): mantém a lembrada.
+    if (s.title.isEmpty() && !m_title.isEmpty() && entry == m_entry) {
+        m_canSeek = false;
+        emit changed(); emit positionChanged();
+        return;
+    }
+
+    const bool newTrack = entry != m_entry || s.title != m_title || s.artist != m_artist || s.album != m_album;
+    m_player = name;
+    m_entry = entry;
+    m_title = s.title;
+    m_artist = s.artist;
+    m_album = s.album;
+    if (newTrack) { m_trackId.clear(); m_uri.clear(); m_artUrl.clear(); m_artFile.clear(); }
+    m_length = s.length;
+    m_position = s.position;
+    m_positionAt = s.positionAt;
+    m_canSeek = s.canSeek && m_length > 0;
+    if (!s.thumbnail.isEmpty()) cacheArtData(s.thumbKey, s.thumbnail);
+    save();
+    emit changed(); emit positionChanged();
+}
+
+// Guarda a capa recebida do SMTC no mesmo cache das capas do Linux (mesma regra de limpeza).
+// O nome do arquivo é um hash: nada de título ou artista no disco além do media.json que já existe.
+void MediaClient::cacheArtData(const QString &key, const QByteArray &data) {
+    if (data.isEmpty() || data.size() > 5 * 1024 * 1024) return;
+    const QString hash = QString::fromLatin1(QCryptographicHash::hash(("smtc:" + key).toUtf8(), QCryptographicHash::Sha1).toHex());
+    QDir().mkpath(artDir());
+    const QString file = artDir() + '/' + hash;
+    if (!QFileInfo::exists(file)) {
+        QSaveFile out(file);
+        if (!out.open(QIODevice::WriteOnly) || out.write(data) != data.size() || !out.commit()) return;
+        pruneArt(artDir());
+    }
+    m_artFile = file;
+}
+#endif
