@@ -86,6 +86,16 @@ Para abrir sem atalho: `.\build-windows.ps1 -Run`. Passo a passo e solução de 
 - [x] **1.0.0** — uso pessoal no Windows: versão única, Configurações > Sobre, CHANGELOG e auditoria de privacidade ([diário](docs/diario/11-release-1-0-0.md), [notas](docs/releases/v1.0.0.md))
 - [ ] Depois do 1.0.0: bateria do fone Bluetooth e BLE, identidade final das telas
 
+## Próximas melhorias
+
+Ideias para depois do 1.0.0, sem ordem fechada e ainda não iniciadas. Cada recurso novo sobe a versão do meio (1.1.0, 1.2.0…), como descrito em [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+- **Volume do Windows:** geral, por aplicativo (como o Ear Trumpet) e do microfone, pela Core Audio.
+- **Brilho** da tela, pelo WMI (tela interna do notebook).
+- **Teste de velocidade** da internet, dentro do app e só por clique.
+- **Ajustes visuais:** ícone da IA selecionada no chat e letra sempre branca nas Configurações.
+- **Outras pendências:** toast com botões ("Adiar 10 min"), troca do shim do Kirigami por Qt Quick puro, temperatura da CPU e testes no Linux.
+
 ## Tecnologias
 
 | Camada | Tecnologias |

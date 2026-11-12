@@ -18,13 +18,13 @@ Levantamento feito a partir do README e de uma busca por APIs específicas de Li
 | Função | Linux (hoje) | Windows (alvo) | Arquivo |
 | --- | --- | --- | --- |
 | Música (player ativo, capa, controles) | MPRIS via D-Bus (`org.mpris.MediaPlayer2`) | SMTC — `GlobalSystemMediaTransportControlsSessionManager` (C++/WinRT, feito no passo 6) | `mediaclient.cpp`, `mediainfo_win.cpp` |
-| Rede (tráfego, IP, sinal Wi-Fi) | `/proc/net/dev`, NetworkManager (D-Bus) | `GetIfTable2`/`GetIfEntry2` (IP Helper), WLAN API (`WlanQueryInterface`) | `networkclient.cpp` |
-| CPU / carga / uptime | `/proc/stat`, `/proc/loadavg`, `/proc/uptime`, `/proc/cpuinfo` | PDH (Performance Counters), `GetTickCount64`, registro/WMI para o nome do processador | `dashboardclient.cpp` / `plugin.cpp` |
+| Rede (tráfego, IP, sinal Wi-Fi) | `/proc/net/dev`, NetworkManager (D-Bus) | `GetIfTable2`/`GetIfEntry2`, `GetBestInterfaceEx` e `GetAdaptersAddresses` (IP Helper), WLAN API (`WlanQueryInterface`); feito no passo 5 | `networkclient.cpp`, `networkinfo_win.cpp` |
+| CPU / carga / uptime | `/proc/stat`, `/proc/loadavg`, `/proc/uptime`, `/proc/cpuinfo` | `GetSystemTimes`, `GetTickCount64`, `GetPerformanceInfo` e registro para o nome do processador (feito no passo 4; sem "load average": a linha mostra processos) | `dashboardclient.cpp`, `systeminfo_win.cpp` |
 | RAM e swap | `/proc/meminfo` | `GlobalMemoryStatusEx` | idem |
 | Disco | `QStorageInfo` / `statvfs` (verificar) | `QStorageInfo` já funciona no Windows | idem |
-| Temperaturas (CPU, SSD) | `/sys/class/hwmon` | Sem API padrão; WMI `MSAcpi_ThermalZoneTemperature` é limitado. Avaliar LibreHardwareMonitor | idem |
-| GPU | `nvidia-smi`, `/sys/class/drm` | `nvidia-smi` (existe no Windows com driver NVIDIA); contadores PDH "GPU Engine" para os demais | idem |
-| Baterias (notebook e periféricos) | UPower e BlueZ (D-Bus) | `GetSystemPowerStatus`; Bluetooth via WinRT (`BluetoothLEDevice`/GATT Battery Service) | `plugin.cpp` |
+| Temperaturas (CPU, SSD) | `/sys/class/hwmon` | SSD: `IOCTL_STORAGE_QUERY_PROPERTY`, sem administrador (feito). CPU: sem API padrão e sem administrador, fica indisponível; o LibreHardwareMonitor foi descartado por exigir driver de kernel (fora do 1.0.0) | `systeminfo_win.cpp` |
+| GPU | `nvidia-smi`, `/sys/class/drm` | Contadores PDH "GPU Engine" primeiro (como o Gerenciador de Tarefas, cobre as duas GPUs); `nvidia-smi` só se o PDH falhar | `systeminfo_win.cpp` |
+| Baterias (notebook e periféricos) | UPower e BlueZ (D-Bus) | Notebook: `GetSystemPowerStatus`. Periféricos: lista do Windows (CfgMgr32) com a bateria que ele informa e, para o mouse Logitech, HID++ pelo receptor. Bateria do fone Bluetooth e BLE (WinRT/GATT) ficaram em aberto | `systeminfo_win.cpp`, `dashboardclient.cpp` |
 | Notificações dos lembretes | `org.freedesktop.Notifications` | `showMessage` do ícone da bandeja (toast no Windows 10/11), feito no passo 7a; com o atalho do uso local (7b), o toast mostra o nome e o ícone do DREAVON | `dashboardclient.cpp`, `main.qml` |
 | Nome do modelo do notebook | `/sys/class/dmi/id/product_name` | WMI `Win32_ComputerSystem` | `plugin.cpp` |
 | Pastas de dados e cache | `~/.local/share/dreavon`, `~/.cache/dreavon` (via `QStandardPaths`) | `QStandardPaths` já resolve para `%LOCALAPPDATA%` | vários |
