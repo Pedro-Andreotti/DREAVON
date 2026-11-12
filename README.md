@@ -63,6 +63,7 @@ O mapeamento completo, com as dúvidas em aberto, está em [`docs/windows-port.m
 - [ ] **7.** Extras do Windows:
   - [x] **7a.** Notificações dos lembretes (toast, agrupadas, com indicador no cartão) e atalho global configurável (Ctrl+Shift+Alt+D) ([diário](docs/diario/08-notificacoes-atalho-windows.md)); a bandeja existe desde o passo 2
   - [ ] **7b.** Instalador e assinatura do executável
+- [x] Desempenho: CPU em repouso de ~42% para 2–10% de um núcleo com a janela aberta e ~1% oculta, com a animação do clima a 15–20 quadros por segundo e só em foco ([diário](docs/diario/09-uso-de-cpu-windows.md))
 - [ ] Identidade final: ícone do aplicativo e telas
 
 ## Tecnologias
