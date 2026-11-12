@@ -22,6 +22,8 @@ Settings {
     property string customModel: ""
     property string newsTopic: ""
     property string calendarUrls: ""
+    // Atalho global para mostrar/ocultar o painel (Windows; ver GlobalHotkey).
+    property string globalShortcut: "Ctrl+Shift+Alt+D"
 
     // Cartões
     property bool showWeather: true

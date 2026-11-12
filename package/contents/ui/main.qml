@@ -59,6 +59,7 @@ Window {
         credentials: credentialStore
         credentialTarget: settings.customApiKeyTarget
         legacyKeyStore: legacyKeySettings
+        hotkey: globalHotkey
         onApplied: root.reloadLegacyKey()
     }
 
@@ -72,6 +73,8 @@ Window {
                 + (used >= 0 ? " · " + Math.round(100 - used) + "% da cota de 5h livre" : "")
         }
         onActivated: reason => { if (reason === Platform.SystemTrayIcon.Trigger) root.togglePanel() }
+        // Clique na notificação (toast) de um lembrete: mostra o painel.
+        onMessageClicked: root.showPanel()
         menu: Platform.Menu {
             Platform.MenuItem {
                 text: root.visible ? "Ocultar" : "Mostrar"
@@ -135,6 +138,20 @@ Window {
     readonly property string modelKey: cfg.defaultModel + "|" + cfg.defaultEffort
     onModelKeyChanged: if (claudeBackend.ready && !claudeBackend.busy) applyModelDefaults()
 
+    // Atalho global (Windows): mesmo efeito do clique no ícone da bandeja. Nas outras plataformas,
+    // GlobalHotkey não faz nada (supported = false).
+    Backend.GlobalHotkey {
+        id: globalHotkey
+        sequence: root.cfg.globalShortcut || ""
+        onActivated: root.togglePanel()
+    }
+
+    // Windows: a notificação sai pelo ícone da bandeja (o Windows 10/11 a mostra como toast).
+    Connections {
+        target: dashBackend
+        function onNotificationRequested(title, body) { tray.showMessage(title, body, Platform.SystemTrayIcon.Information, 15000) }
+    }
+
     // Alarmes dos lembretes: avisa uma vez quando chega a hora (mesmo com a janela oculta).
     Timer {
         interval: 15000; running: true; repeat: true; triggeredOnStart: true
@@ -145,14 +162,34 @@ Window {
         try { list = JSON.parse(cfg.reminders || "[]") } catch (e) { return }
         if (!Array.isArray(list)) return
         const now = Date.now()
+        const windows = Qt.platform.os === "windows"
+        const fired = []
         let changed = false
         for (const item of list) {
             if (item.done || !(item.due > 0) || item.notified || item.due > now) continue
             item.notified = true; changed = true
             // Lembretes muito antigos (aplicativo estava fechado) são só marcados, sem barulho.
-            if (now - item.due < 6 * 3600 * 1000) dashBackend.notify("Lembrete", item.text)
+            if (now - item.due >= 6 * 3600 * 1000) continue
+            if (!windows) { dashBackend.notify("Lembrete", item.text); continue }
+            // Windows: marca no cartão que o alarme tocou (não se perde com o Não Perturbe ligado).
+            item.alarmAt = now
+            fired.push(item)
         }
+        if (fired.length) root.announceReminders(fired, now)
         if (changed) cfg.reminders = JSON.stringify(list)
+    }
+    // Uma notificação só por verificação: vários alarmes juntos (ou atrasados, depois de o PC voltar da
+    // suspensão) viram um aviso agrupado, com até 3 textos.
+    function announceReminders(fired, now) {
+        const late = fired.filter(i => now - i.due > 2 * 60 * 1000).length
+        if (fired.length === 1) {
+            dashBackend.notify(late ? "Lembrete atrasado" : "Lembrete", fired[0].text)
+            return
+        }
+        const title = fired.length + (late === fired.length ? " lembretes atrasados" : " lembretes")
+        const lines = fired.slice(0, 3).map(i => "• " + i.text)
+        if (fired.length > 3) lines.push("…e mais " + (fired.length - 3))
+        dashBackend.notify(title, lines.join("\n"))
     }
 
     IcsFeed { id: calendarFeed; urls: root.cfg.calendarUrls || "" }

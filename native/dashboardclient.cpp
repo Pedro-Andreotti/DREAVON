@@ -38,6 +38,9 @@ Q_DECLARE_METATYPE(DBusObjects)
 // Diagnóstico da leitura de bateria por HID++ (desligado por padrão; ligue com
 // QT_LOGGING_RULES="dreavon.devices.info=true"). Só contagem e duração, sem valores nem ids.
 Q_LOGGING_CATEGORY(lcDevices, "dreavon.devices", QtWarningMsg)
+// Notificações dos lembretes, desligado por padrão (QT_LOGGING_RULES="dreavon.notify.info=true").
+// Só contagens: o título e o texto do lembrete vão apenas para a notificação, nunca para o log.
+Q_LOGGING_CATEGORY(lcNotify, "dreavon.notify", QtWarningMsg)
 #endif
 
 namespace {
@@ -145,8 +148,12 @@ void DashboardClient::notify(const QString &title, const QString &body) {
     message << QStringLiteral("DREAVON") << uint(0) << QStringLiteral("dreavon") << title << body
             << QStringList{} << QVariantMap{{"urgency", QVariant::fromValue<uchar>(1)}} << int(15000);
     QDBusConnection::sessionBus().asyncCall(message, 3000);
+#elif defined(Q_OS_WIN)
+    // Windows: o ícone da bandeja (main.qml) mostra a notificação, que o Windows 10/11 exibe como toast.
+    static int count = 0;
+    qCInfo(lcNotify) << "notificação pedida à bandeja; total nesta sessão:" << ++count;
+    emit notificationRequested(title, body);
 #else
-    // TODO(Windows): notificação toast. Por enquanto, nada é exibido.
     Q_UNUSED(title); Q_UNUSED(body);
 #endif
 }

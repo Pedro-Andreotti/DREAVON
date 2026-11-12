@@ -79,7 +79,8 @@ public:
     Q_INVOKABLE void setLocation(const QString &city, double latitude, double longitude);
     // Tópico do Google News: "" (principais), TECHNOLOGY, SPORTS, BUSINESS, ENTERTAINMENT, SCIENCE, HEALTH.
     Q_INVOKABLE void setNewsTopic(const QString &topic);
-    // Notificação do sistema (D-Bus org.freedesktop.Notifications), usada pelos alarmes dos lembretes.
+    // Notificação do sistema, usada pelos alarmes dos lembretes: D-Bus (org.freedesktop.Notifications)
+    // no Linux; no Windows, toast pelo ícone da bandeja (sinal notificationRequested).
     Q_INVOKABLE void notify(const QString &title, const QString &body);
 
 signals:
@@ -87,6 +88,8 @@ signals:
     void weatherChanged();
     void newsChanged();
     void changed();
+    // Sem D-Bus (Windows): notify() pede ao QML que mostre a notificação pelo ícone da bandeja.
+    void notificationRequested(const QString &title, const QString &body);
 
 private:
     void requestBatteries();

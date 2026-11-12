@@ -21,6 +21,7 @@ add_library(dreavonplugin MODULE
     native/mediaclient.cpp native/mediaclient.h
     native/networkclient.cpp native/networkclient.h
     native/credentialstore.cpp native/credentialstore.h
+    native/globalhotkey.cpp native/globalhotkey.h
 )
 
 target_link_libraries(dreavonplugin PRIVATE
@@ -44,6 +45,8 @@ if(WIN32)
     # Em C++17, o C++/WinRT usa <experimental/coroutine>, que o MSVC atual recusa; só este arquivo
     # compila em C++20 (o resto do projeto segue em C++17).
     set_source_files_properties(native/mediainfo_win.cpp PROPERTIES COMPILE_OPTIONS "/std:c++20")
+    # Atalho global (passo 7a): RegisterHotKey numa janela só de mensagens (user32, já ligada por padrão).
+    target_sources(dreavonplugin PRIVATE native/hotkey_win.cpp native/hotkey_win.h)
 endif()
 
 if(MSVC)

@@ -27,10 +27,21 @@ Card {
     }
     function toggle(id) { commit(items.map(i => i.id === id ? Object.assign({}, i, {done: !i.done}) : i)) }
     // Adia um lembrete atrasado em 10 minutos (e volta a avisar).
-    function snooze(id) { commit(items.map(i => i.id === id ? Object.assign({}, i, {due: Date.now() + 600000, notified: false}) : i)) }
+    function snooze(id) { commit(items.map(i => i.id === id ? Object.assign({}, i, {due: Date.now() + 600000, notified: false, alarmAt: 0}) : i)) }
+    // "Alarme tocou" (Windows): fica marcado até ser visto aqui, porque a notificação pode ter sido
+    // escondida pelo Não Perturbe ou ter chegado com o PC bloqueado.
+    readonly property int unseenAlarms: items.filter(i => !i.done && i.alarmAt > 0).length
+    function acknowledge(id) { commit(items.map(i => i.id === id ? Object.assign({}, i, {alarmAt: 0}) : i)) }
+    function hhmm(ms) { const d = new Date(ms); return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) }
     function remove(id) { commit(items.filter(i => i.id !== id)) }
 
     actions: [
+        Rectangle {
+            visible: card.unseenAlarms > 0
+            radius: 9; height: 18; width: alarmBadge.implicitWidth + 14
+            color: Qt.rgba(card.t.warn.r, card.t.warn.g, card.t.warn.b, 0.18)
+            Text { id: alarmBadge; anchors.centerIn: parent; text: "🔔 " + card.unseenAlarms; color: card.t.warn; font.pixelSize: 10; font.weight: Font.DemiBold }
+        },
         IconButton { t: card.t; icon: "edit-clear-all-symbolic"; tip: "Limpar concluídos"; size: 22; visible: card.items.length > card.pending; onClicked: card.commit(card.items.filter(i => !i.done)) }
     ]
 
@@ -62,6 +73,13 @@ Card {
                         readonly property bool late: modelData.due < card.now
                         text: (late ? "Atrasado · " : "⏰ ") + TP.formatDue(modelData.due, card.now)
                         color: late ? card.t.bad : card.t.accent; font.pixelSize: 10
+                    }
+                    Text {
+                        visible: modelData.alarmAt > 0 && !modelData.done
+                        text: "🔔 Alarme tocou às " + card.hhmm(modelData.alarmAt) + " · dispensar"
+                        color: card.t.warn; font.pixelSize: 10; font.weight: Font.DemiBold
+                        TapHandler { onTapped: card.acknowledge(modelData.id) }
+                        HoverHandler { cursorShape: Qt.PointingHandCursor }
                     }
                 }
                 IconButton { visible: modelData.due > 0 && !modelData.done && modelData.due < card.now; t: card.t; icon: "chronometer"; tip: "Adiar 10 minutos"; size: 20; onClicked: card.snooze(modelData.id) }

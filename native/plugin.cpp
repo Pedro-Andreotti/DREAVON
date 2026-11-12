@@ -18,6 +18,7 @@
 #include "mediaclient.h"
 #include "networkclient.h"
 #include "credentialstore.h"
+#include "globalhotkey.h"
 #ifdef Q_OS_WIN
 #include <qt_windows.h>   // CREATE_NEW_CONSOLE e STARTUPINFO, para abrir o CLI numa janela de console
 #endif
@@ -1903,6 +1904,7 @@ public:
         qmlRegisterType<DashboardClient>(uri,1,0,"DashboardClient");
         qmlRegisterType<MediaClient>(uri,1,0,"MediaClient");
         qmlRegisterType<NetworkClient>(uri,1,0,"NetworkClient");
+        qmlRegisterType<GlobalHotkey>(uri,1,0,"GlobalHotkey");
         qmlRegisterType<CredentialStore>(uri,1,0,"CredentialStore");
 #ifdef Q_OS_WIN
         // Aberto pelo qml.exe, o app herdaria o ícone do Qt: usa o do DREAVON em todas as janelas.
