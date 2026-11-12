@@ -19,6 +19,14 @@ Rectangle {
     function deg(v) { return v > -999 ? v + "°" : "—" }
     function uvLabel(uv) { return uv < 0 ? "" : uv <= 2 ? "baixo" : uv <= 5 ? "moderado" : uv <= 7 ? "alto" : uv <= 10 ? "muito alto" : "extremo" }
 
+    // Largura mínima de cada coluna (horas e dias), medida com os textos mais longos possíveis, para as
+    // colunas terem a mesma largura e nunca encostarem uma na outra, em qualquer escala de exibição.
+    TextMetrics { id: tempMetrics; font.pixelSize: 11; text: "-10° -10°" }
+    TextMetrics { id: hourMetrics; font.pixelSize: 11; text: "-10°" }
+    TextMetrics { id: rainMetrics; font.pixelSize: 9; text: "☂ 100%" }
+    readonly property real hourWidth: Math.max(hourMetrics.advanceWidth, rainMetrics.advanceWidth, 26) + 4
+    readonly property real dayWidth: Math.max(tempMetrics.advanceWidth, rainMetrics.advanceWidth, 26) + 4
+
     component Heading: Text { color: footer.t.muted; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 0.8 }
 
     GridLayout {
@@ -65,19 +73,23 @@ Rectangle {
             Layout.alignment: Qt.AlignTop
             Heading { text: "PRÓXIMAS HORAS" }
             RowLayout {
-                Layout.fillWidth: true; spacing: 0
+                Layout.fillWidth: true; spacing: 6
                 Repeater {
                     model: footer.dash.hourly.slice(0, footer.compact ? 6 : 8)
                     delegate: Item {
                         required property var modelData
+                        // Colunas de largura igual, com mínimo para o texto mais longo.
                         Layout.fillWidth: true
-                        implicitWidth: hourCol.implicitWidth; implicitHeight: hourCol.implicitHeight
+                        Layout.minimumWidth: footer.hourWidth; Layout.preferredWidth: footer.hourWidth
+                        implicitHeight: hourCol.implicitHeight
                         ColumnLayout {
                             id: hourCol; anchors.horizontalCenter: parent.horizontalCenter; spacing: 0
                             Text { text: modelData.now ? "Agora" : modelData.hour; color: modelData.now ? footer.t.accent : footer.t.muted; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
                             Item { Layout.preferredWidth: 22; Layout.preferredHeight: 20; Layout.alignment: Qt.AlignHCenter
                                 WeatherIcon { anchors.centerIn: parent; code: modelData.code; animated: false; scale: 0.48 } }
-                            Text { text: modelData.temp + "°" + (modelData.rain > 20 ? " · " + modelData.rain + "%" : ""); color: footer.t.ink; font.pixelSize: 11; Layout.alignment: Qt.AlignHCenter }
+                            // Temperatura em cima e chance de chuva embaixo, no mesmo estilo da semana.
+                            Text { text: modelData.temp + "°"; color: footer.t.ink; font.pixelSize: 11; Layout.alignment: Qt.AlignHCenter }
+                            Text { text: modelData.rain > 20 ? "☂ " + modelData.rain + "%" : " "; color: "#7cc4ff"; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
                         }
                     }
                 }
@@ -93,13 +105,14 @@ Rectangle {
             Layout.alignment: Qt.AlignTop
             Heading { text: "SEMANA" }
             RowLayout {
-                Layout.fillWidth: true; spacing: 0
+                Layout.fillWidth: true; spacing: 6
                 Repeater {
                     model: footer.compact ? footer.dash.forecast.slice(0, 5) : footer.dash.forecast
                     delegate: Item {
                         required property var modelData
                         Layout.fillWidth: true
-                        implicitWidth: dayCol.implicitWidth; implicitHeight: dayCol.implicitHeight
+                        Layout.minimumWidth: footer.dayWidth; Layout.preferredWidth: footer.dayWidth
+                        implicitHeight: dayCol.implicitHeight
                         ColumnLayout {
                             id: dayCol; anchors.horizontalCenter: parent.horizontalCenter; spacing: 0
                             Text { text: modelData.isToday ? "Hoje" : modelData.day.slice(0, 3); color: modelData.isToday ? footer.t.accent : footer.t.muted; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
