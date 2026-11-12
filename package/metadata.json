@@ -5,7 +5,7 @@
     "Description": "Chat com Antigravity, Claude e outras IAs, música, rede, lembretes, clima e sistema em um painel.",
     "Icon": "dreavon",
     "Category": "Online Services",
-    "Version": "0.1.0",
+    "Version": "1.0.0",
     "License": "MIT",
     "Authors": [{"Name": "Pedro Andreotti"}]
   },

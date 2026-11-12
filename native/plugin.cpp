@@ -1912,6 +1912,18 @@ public:
         qmlRegisterType<GlobalHotkey>(uri,1,0,"GlobalHotkey");
         qmlRegisterType<Autostart>(uri,1,0,"Autostart");
         qmlRegisterType<CredentialStore>(uri,1,0,"CredentialStore");
+        // Versão (de project(VERSION) no CMakeLists.txt) e repositório, para Configurações > Sobre.
+        qmlRegisterSingletonType(uri, 1, 0, "AppInfo", [](QQmlEngine *, QJSEngine *js) -> QJSValue {
+            QJSValue info = js->newObject();
+            info.setProperty(QStringLiteral("name"), QStringLiteral("DREAVON"));
+#ifdef DREAVON_VERSION
+            info.setProperty(QStringLiteral("version"), QStringLiteral(DREAVON_VERSION));
+#else
+            info.setProperty(QStringLiteral("version"), QString());
+#endif
+            info.setProperty(QStringLiteral("repository"), QStringLiteral("https://github.com/Pedro-Andreotti/DREAVON"));
+            return info;
+        });
 #ifdef Q_OS_WIN
         // Aberto pelo qml.exe, o app herdaria o ícone do Qt: usa o do DREAVON em todas as janelas.
         // baseUrl() é a pasta do plugin (package/contents/ui/bridge); o ícone fica em ../assets.
