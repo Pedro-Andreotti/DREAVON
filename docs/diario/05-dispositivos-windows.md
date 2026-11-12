@@ -80,3 +80,45 @@ No cartão: o notebook com 100% e "4 dispositivos sem bateria informada" (nomes 
 - Decidir o caminho da bateria do fone Bluetooth (AEP com filtro ou WinRT) e o do BLE.
 - Atualizar ao detectar mudança (`CM_Register_Notification`) no lugar do intervalo de 15 s, se quiser resposta imediata.
 - No Windows ainda roda, sem efeito, o trecho do Linux que lê `/sys/class/input` (acha 0 itens); pode ir para trás de `#ifndef Q_OS_WIN` numa limpeza futura.
+
+## Complemento (12/11/2026, branch `feat/bateria-logitech`): bateria Logitech por receptor (HID++)
+O mouse Logitech sem fio usa um receptor USB (LIGHTSPEED) e não aparece como Bluetooth.
+
+**Pesquisa:** documentação do HID++ 2.0 ([Logitech/cpg-docs](https://github.com/Logitech/cpg-docs/tree/master/hidpp20), [x1004 Unified Battery](https://openlogi.org/hidpp/features/x1004-unified-battery), [patch do kernel Linux](https://lkml.org/lkml/2021/1/4/829), [logibar](https://github.com/mryll/logibar), [libratbag](https://deepwiki.com/libratbag/libratbag/3.2-logitech-hid++-2.0-driver)).
+- O receptor expõe uma interface HID do fabricante (página `0xFF00`); o uso `0x0002` é o das mensagens longas (relatório `0x11`, 20 bytes).
+- Primeiro se pergunta ao aparelho em que índice está o recurso de bateria (`Root.GetFeature`), depois se lê o estado.
+
+**Verificado nesta máquina:**
+- **Acesso:** um app comum abre a interface para leitura e escrita, sem administrador.
+- **Recurso:** o mouse suporta **Unified Battery (`0x1004`)**: índice 6, aparelho 1 do receptor.
+- **Valor:** **87%**, descarregando, igual ao que o G HUB mostra (diferença 0). Um dia antes, 90% também batia com o G HUB.
+- **Convivência com o G HUB:** ele ficou aberto o tempo todo e funcionou normalmente, segundo o usuário. O DREAVON usa um identificador de software próprio (`0xA`) e ignora as mensagens do G HUB.
+
+**Só consultas (nada que altere o aparelho):**
+- `Root.GetFeature` (índice do recurso);
+- `UnifiedBattery.GetStatus` (ou `BatteryStatus.GetBatteryLevelStatus` em aparelhos sem o `0x1004`);
+- `DeviceNameType.GetDeviceType`, para o ícone. Duas consultas a mais que no primeiro teste, também só de leitura.
+
+Nenhum comando de configuração, firmware, iluminação ou perfil. Nenhum número de série ou identificador é gravado, e os handles são fechados ao fim de cada leitura.
+
+**Implementação** (`native/systeminfo_win.cpp`, `native/dashboardclient.cpp/.h`, `CMakeLists.txt` com `hid` e `setupapi`, só no Windows):
+- **Leitura:** em segundo plano (`QtConcurrent`) a cada 60 s, sem travar a interface. Cada ciclo leva ~3 s.
+- **Ligação com o cartão:** a bateria é associada ao contêiner do receptor (a mesma linha que o cartão já mostrava). O tipo vem do próprio aparelho (Mouse).
+- **Consultas:** tempo limite de 1 s e uma nova tentativa, porque o receptor pode estar ocupado com o G HUB. Índices vazios do receptor são sondados por 500 ms, sem nova tentativa.
+- **Cache:** se um ciclo falha, o cartão mantém o último valor bom por até **10 min** (decisão do usuário). Depois disso, volta para "sem bateria".
+- **Diagnóstico:** categoria `dreavon.devices`, desligada por padrão (só contagem e duração).
+
+**Estabilidade (honesta):**
+- Toda leitura que funcionou deu o valor certo.
+- Mas só **~45% dos ciclos** conseguiram ler (5 de 11 com o código final). A maior sequência de falhas foi de **5 min**, e o aparelho simplesmente não respondeu nesses ciclos.
+- A hipótese de o mouse dormir quando fica parado **não foi confirmada**: o teste com uso ativo não pôde ser feito, e houve ciclos bons sem uso. A causa das falhas fica **em aberto**.
+- O cartão não piscou nos testes (cache).
+
+**Validação extra:** um teclado Bluetooth conectado durante o teste mostrou 100% pela propriedade do Windows (caminho da etapa anterior), igual a Configurações (100%). É a primeira verificação real desse caminho.
+
+**Não verificado:**
+- Mouse carregando.
+- Aparelhos Logitech pelo receptor Unifying.
+- Mais de um aparelho no mesmo receptor.
+- O comportamento com o G HUB fechado.
+- A causa das falhas intermitentes.
