@@ -54,7 +54,7 @@ Os créditos no `LICENSE` e a seção "Baseado no Plasdria" do README **não** m
 ## Escopo da troca de logo
 - `package/contents/ui/assets/`: `icon.png`, `mark.png`, `mark-mono.png` e `wordmark.png` pelas versões do DREAVON (marca, versão monocromática e nome).
 - `images/`: logos e ícones originais do Plasdria; substituir pelos do DREAVON ou remover.
-- `docs/banner.png`, `docs/screenshot.png` e `docs/screenshot-narrow.png` mostram o Plasdria; remover ou substituir por capturas do DREAVON quando houver interface no Windows. O README já não usa essas imagens.
+- `docs/banner.png`, `docs/screenshot.png` e `docs/screenshot-narrow.png` mostram o Plasdria; remover ou substituir por capturas do DREAVON quando houver interface no Windows. O README já não usa essas imagens. **Feito no 1.0.0:** as três foram removidas (mostravam dados pessoais do autor original; ver diário 11).
 - Ícone do aplicativo e da bandeja: `.ico` gerado da marca.
 
 ## Segurança

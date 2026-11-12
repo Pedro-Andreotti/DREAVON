@@ -34,7 +34,8 @@ Window {
     readonly property var pages: [
         {name: "Geral", source: "ConfigGeneral.qml"},
         {name: "Cartões", source: "ConfigCards.qml"},
-        {name: "Aparência", source: "ConfigAppearance.qml"}
+        {name: "Aparência", source: "ConfigAppearance.qml"},
+        {name: "Sobre", source: "ConfigAbout.qml"}
     ]
 
     // Tema escuro para os controles desta janela.

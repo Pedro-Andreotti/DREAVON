@@ -15,6 +15,8 @@ Convenção de trabalho com branches, pensada para um projeto pessoal em que mai
 | `fix/` | correção de erro | `fix/leitura-memoria` |
 | `docs/` | só documentação | `docs/contributing` |
 | `chore/` | ajustes de build, dependências, limpeza | `chore/gitignore-windows` |
+| `perf/` | desempenho | `perf/uso-de-cpu` |
+| `release/` | preparação de uma versão | `release/1.0.0` |
 
 ## Fluxo
 ```bash
@@ -29,6 +31,23 @@ git branch -d feat/nome-da-etapa
 
 ## Commits
 Mensagens curtas, em português, no imperativo ou descrevendo a mudança (por exemplo, "Isola o D-Bus atrás de Q_OS_LINUX"). Uma mudança lógica por commit.
+
+## Versões
+O DREAVON segue o Versionamento Semântico (`MAJOR.MINOR.PATCH`):
+
+| Mudança | Qual número sobe | Exemplo a partir de 1.0.0 |
+| --- | --- | --- |
+| Recurso novo | o do meio (MINOR), e o último volta a 0 | 1.1.0, depois 1.2.0 |
+| Correção | o último (PATCH) | 1.0.1 |
+| Mudança que quebra configurações salvas ou o QML | o primeiro (MAJOR), e os outros voltam a 0 | 2.0.0 |
+
+- **Uma versão por release, não por PR.** PRs só de documentação, limpeza ou build (`docs/`, `chore/`) não sobem a versão.
+- **O PR do recurso (ou da correção) já sobe a versão:**
+  - troca o número em `project(DREAVON VERSION X.Y.Z)` no `CMakeLists.txt` e em `KPlugin.Version` no `package/metadata.json`; o CMake confere os dois e para o build se divergirem;
+  - registra a mudança no [CHANGELOG.md](CHANGELOG.md), numa seção `## [X.Y.Z] - AAAA-MM-DD` (formato Keep a Changelog).
+- **Mais de um PR para a mesma versão** (por exemplo, um recurso dividido em partes): só o primeiro sobe o número; os seguintes acrescentam itens à mesma seção do CHANGELOG.
+- **Depois do merge na `main`:** o autor cria a tag `vX.Y.Z` e o GitHub Release, com as notas em `docs/releases/vX.Y.Z.md`. Antes, faça a auditoria de privacidade (sem chaves, caminhos pessoais nem dados reais; ver o diário 11).
+- O app mostra a versão em Configurações > Sobre.
 
 ## Documentação
 Cada implementação concluída é registrada nas notas do projeto (Obsidian: "Log de implementações"), com o link do Pull Request.

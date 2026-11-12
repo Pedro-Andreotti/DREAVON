@@ -1,7 +1,15 @@
 # Plugin QML nativo do DREAVON (equivalente ao native/bridge.pro).
 # Gera a biblioteca "dreavonplugin" em package/contents/ui/bridge, ao lado do qmldir.
 cmake_minimum_required(VERSION 3.21)
-project(DREAVON LANGUAGES CXX)
+# Versão do DREAVON (SemVer). É a fonte única: o plugin a expõe ao QML (AppInfo.version, em
+# Configurações > Sobre). O package/metadata.json (metadados do plasmoide) precisa ter o mesmo número;
+# o CMake confere abaixo e para o build se divergirem.
+project(DREAVON VERSION 1.0.0 LANGUAGES CXX)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/package/metadata.json" dreavon_metadata)
+string(JSON dreavon_metadata_version GET "${dreavon_metadata}" KPlugin Version)
+if(NOT dreavon_metadata_version STREQUAL PROJECT_VERSION)
+    message(FATAL_ERROR "Versão divergente: CMakeLists.txt ${PROJECT_VERSION}, package/metadata.json ${dreavon_metadata_version}.")
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -54,6 +62,7 @@ if(MSVC)
     # Fontes em UTF-8 com textos em português; sem /utf-8 o MSVC usa a página de código local.
     target_compile_options(dreavonplugin PRIVATE /utf-8)
 endif()
+target_compile_definitions(dreavonplugin PRIVATE DREAVON_VERSION="${PROJECT_VERSION}")
 
 # Sem prefixo "lib" e na pasta do qmldir, para "plugin dreavonplugin" ser encontrado.
 set(bridge_dir "${CMAKE_CURRENT_SOURCE_DIR}/package/contents/ui/bridge")

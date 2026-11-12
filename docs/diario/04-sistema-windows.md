@@ -1,6 +1,6 @@
 # 04 — Sistema no Windows (passo 4)
 
-Data: 2026-11-11 · Branch: `feat/sistema-windows` · Máquina de teste: notebook Dell G15 5515 (AMD Ryzen 5 5600H, 12 threads, 23,35 GiB de RAM, GPU AMD Radeon integrada + NVIDIA RTX 3050 Laptop, Windows 11 26H2)
+Data: 2026-11-11 · Branch: `feat/sistema-windows` · Máquina de teste: notebook (CPU de 6 núcleos e 12 threads, 23,35 GiB de RAM, GPU integrada + GPU dedicada, Windows 11 26H2)
 
 ## Resumo
 CPU, memória, swap, disco, uptime, processos, modelo da CPU, nome do computador, versão do sistema, bateria, GPU e temperatura do SSD agora vêm de APIs do Windows. A temperatura da CPU fica **indisponível** (decisão do usuário: não há fonte nativa sem administrador). Tudo é leve: APIs do Win32, registro (lido uma vez) e contadores PDH já abertos, sem WMI e sem abrir processos a cada ciclo.
@@ -42,8 +42,8 @@ Referências: contadores de desempenho do Windows (`Get-CimInstance`, as mesmas 
 | Swap (`pagefile.sys`) | 0,93 / 8,00 GiB | 0,93 / 8 GiB | nenhuma |
 | Uptime | 7h 11–12min | 7h 12min (`LastBootUpTime` e contador "System Up Time") | ≤ 1 min (arredondamento no instante) |
 | Processos | 455–482 | 455–482 nos mesmos instantes | nenhuma no mesmo instante |
-| Modelo da CPU / threads | AMD Ryzen 5 5600H with Radeon Graphics · 12 | igual (`Win32_Processor`) | nenhuma |
-| Nome do computador | Dell G15 5515 | Dell G15 5515 (`Win32_ComputerSystem.Model` e registro) | nenhuma |
+| Modelo da CPU / threads | nome do processador · 12 | igual (`Win32_Processor`) | nenhuma |
+| Modelo do computador | modelo do fabricante | igual (`Win32_ComputerSystem.Model` e registro) | nenhuma |
 | Sistema | Windows 11 Version 26H2 · compilação 26300.9974 | Windows 11 Home Single Language · 26H2 · 26300.9974 | nenhuma |
 | Bateria (na tomada) | 100% · "Carregada" | 100% · `BatteryStatus` 2 (na tomada) | nenhuma |
 | GPU | 7–9% (outra leitura: 23–25%) | 6–7% no mesmo critério | ~1–2 pontos (a referência é arredondada para inteiro e lida em outro instante) |
@@ -73,5 +73,5 @@ Opções avaliadas, sem administrador, nesta máquina:
 ## Pendências
 - Temperatura da CPU: só com uma solução de terceiros com driver (LHM + PawnIO). Precisa de proposta e decisão próprias.
 - Testar a bateria fora da tomada e o caminho de PC de mesa.
-- Dispositivos e periféricos (USB, bateria de Bluetooth): fora deste passo. O cartão mostra só o próprio notebook ("Dell G15 5515", 100%) e "Nenhum dispositivo…" para o resto, sem quebrar.
+- Dispositivos e periféricos (USB, bateria de Bluetooth): fora deste passo. O cartão mostra só o próprio notebook (pelo nome do modelo, 100%) e "Nenhum dispositivo…" para o resto, sem quebrar.
 - O tempo restante da bateria (`BatteryLifeTime`) só aparece fora da tomada; não foi visto funcionando.
