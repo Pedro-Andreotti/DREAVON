@@ -34,6 +34,9 @@ if(WIN32)
     target_sources(dreavonplugin PRIVATE native/systeminfo_win.cpp native/systeminfo_win.h)
     # cfgmgr32: lista de aparelhos conectados (cartão Dispositivos); hid e setupapi: bateria Logitech (HID++).
     target_link_libraries(dreavonplugin PRIVATE advapi32 pdh psapi cfgmgr32 hid setupapi)
+    # Rede (passo 5): iphlpapi (contadores, melhor rota, endereços), wlanapi (SSID e sinal), ws2_32.
+    target_sources(dreavonplugin PRIVATE native/networkinfo_win.cpp native/networkinfo_win.h)
+    target_link_libraries(dreavonplugin PRIVATE iphlpapi wlanapi ws2_32)
 endif()
 
 if(MSVC)
